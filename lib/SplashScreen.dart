@@ -13,36 +13,81 @@ class SplashScreen extends StatefulWidget {
 class _SplashScreenState extends State<SplashScreen> {
   late final Player _player;
   late final VideoController _controller;
-  bool _isVideoInitialized = false;
+  bool _isVideoSiap = false;
+  bool _animasiKelar = false;
 
   @override
   void initState() {
     super.initState();
-
     MediaKit.ensureInitialized();
 
     _player = Player();
 
-    _controller = VideoController(_player);
+    _controller = VideoController(
+      _player,
+      configuration: const VideoControllerConfiguration(
+        enableHardwareAcceleration: false,
+      ),
+    );
 
-    _player.stream.completed.listen((bool completed){
-      if (completed && mounted) {
-        Navigator.of(context).pushReplacement(
-          MaterialPageRoute(builder: (context) => const LoginPage())
-        );
+    _jalankanSplash();
+  }
+
+  Future<void> _jalankanSplash() async {
+    // 1. Task proses data (misal cek sesi token atau siapin halaman login)
+    final Future<void> prosesData = Future(() async {
+      // Ganti ini dengan pengecekan login aslimu
+      await Future.delayed(const Duration(milliseconds: 2500));
+    });
+
+    // 2. Task pemutaran video
+    final Future<void> prosesVideo = Future(() async {
+      try {
+        await _player.open(Media('asset:///assets/video/splash.webm'));
+        if (mounted) {
+          setState(() {
+            _isVideoSiap = true;
+          });
+          await _player.play();
+        }
+
+        // Tunggu sampai video menyentuh akhir
+        await _player.stream.completed.firstWhere((selesai) => selesai);
+
+        // Kunci di sini: langsung pause biar gak di-reset ke blank
+        await _player.pause();
+
+        if (mounted) {
+          setState(() {
+            _animasiKelar = true; // Tandai animasi udah mentok di akhir
+          });
+        }
+      } catch (e) {
+        // Kalau video error, langsung anggap beres biar gak macet
+        if (mounted) {
+          setState(() {
+            _animasiKelar = true;
+          });
+        }
       }
     });
 
-    _player.open(Media('asset://assets/video/splash.webm')).then((_) {
-      setState(() {
-        _isVideoInitialized = true;
-      });
-      _player.play();
-    });
+    // Tunggu DUA-DUANYA kelar:
+    // - Kalau HP kencang: data siap duluan, tapi nunggu video kelar.
+    // - Kalau HP lambat: video kelar duluan, animasi bakal diam membeku nunggu proses data kelar.
+    await Future.wait([prosesData, prosesVideo]);
 
-    Future.delayed(const Duration(seconds: 3), () {
-      if (mounted) {}
-    });
+    if (!mounted) return;
+
+    // Langsung pindah ke halaman login
+    Navigator.of(context).pushReplacement(
+      PageRouteBuilder(
+        pageBuilder: (context, anim1, anim2) => const LoginPage(),
+        transitionsBuilder: (context, anim1, anim2, child) =>
+            FadeTransition(opacity: anim1, child: child),
+        transitionDuration: const Duration(milliseconds: 300),
+      ),
+    );
   }
 
   @override
@@ -56,19 +101,33 @@ class _SplashScreenState extends State<SplashScreen> {
     return Scaffold(
       backgroundColor: Colors.white,
       body: Center(
-        child: _isVideoInitialized
-            ? SizedBox(
-                width: MediaQuery.of(context).size.width,
-                height: MediaQuery.of(context).size.height,
-                child: Video(
-                  controller: _controller,
-                  controls: NoVideoControls,
-                  fill: Colors.transparent,
+        child: Stack(
+          alignment: Alignment.center,
+          children: [
+            // Layer 1: Frame diam / Logo statis (muncul nahan layar pas video udah kelar)
+            // Bisa pakai Image.asset logo kamu di sini kalau video tetap flicker
+            // if (_animasiKelar)
+            //   Image.asset(
+            //     'assets/images/logo.png', // assset belum terinput dan juga masih ada beberapa bug
+            //     fit: BoxFit.contain,
+            //   ),
+
+            // Layer 2: Player Video (transparan saat animasi kelar biar nampilin layer 1)
+            if (_isVideoSiap)
+              Opacity(
+                opacity: _animasiKelar ? 0.0 : 1.0,
+                child: SizedBox(
+                  width: MediaQuery.of(context).size.width,
+                  height: MediaQuery.of(context).size.height,
+                  child: Video(
+                    controller: _controller,
+                    controls: NoVideoControls,
+                    fill: Colors.white,
+                  ),
                 ),
-              )
-            : const CircularProgressIndicator(
-                color: Colors.blue,
-              ), // Menunggu video siap
+              ),
+          ],
+        ),
       ),
     );
   }
