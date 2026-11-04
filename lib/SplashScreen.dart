@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:media_kit/media_kit.dart';
 import 'package:media_kit_video/media_kit_video.dart';
+import 'login_page.dart';
 
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});
@@ -23,6 +24,14 @@ class _SplashScreenState extends State<SplashScreen> {
     _player = Player();
 
     _controller = VideoController(_player);
+
+    _player.stream.completed.listen((bool completed){
+      if (completed && mounted) {
+        Navigator.of(context).pushReplacement(
+          MaterialPageRoute(builder: (context) => const LoginPage())
+        );
+      }
+    });
 
     _player.open(Media('asset://assets/video/splash.webm')).then((_) {
       setState(() {
