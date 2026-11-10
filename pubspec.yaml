@@ -65,6 +65,7 @@ flutter:
   assets:
     - assets/images/
     - assets/video/splash.webm
+    - assets/images/profil.png
   #   - images/a_dot_burr.jpeg
   #   - images/a_dot_ham.jpeg
 
