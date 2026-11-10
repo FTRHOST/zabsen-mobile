@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:media_kit/media_kit.dart';
 import 'package:media_kit_video/media_kit_video.dart';
+
 import 'login_page.dart';
 
 class SplashScreen extends StatefulWidget {
@@ -19,34 +21,46 @@ class _SplashScreenState extends State<SplashScreen> {
   void initState() {
     super.initState();
 
-    MediaKit.ensureInitialized();
+    // Sembunyikan status bar & navigasi agar full screen
+    SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersive);
 
     _player = Player();
-
     _controller = VideoController(_player);
 
-    _player.stream.completed.listen((bool completed){
+    _initializeVideo();
+  }
+
+  Future<void> _initializeVideo() async {
+    // Atur latar belakang mpv agar transparansi webm dirender sebagai warna putih
+    try {
+      final dynamic platform = _player.platform;
+      await platform.setProperty('background-color', '#FFFFFF');
+      await platform.setProperty('background', 'color');
+    } catch (_) {}
+
+    _player.stream.completed.listen((bool completed) {
       if (completed && mounted) {
+        // Kembalikan UI sistem normal sebelum beralih ke LoginPage
+        SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
         Navigator.of(context).pushReplacement(
-          MaterialPageRoute(builder: (context) => const LoginPage())
+          MaterialPageRoute(builder: (context) => const LoginPage()),
         );
       }
     });
 
-    _player.open(Media('asset://assets/video/splash.webm')).then((_) {
+    await _player.open(Media('asset://assets/video/splash_white.mp4'));
+    if (mounted) {
       setState(() {
         _isVideoInitialized = true;
       });
       _player.play();
-    });
-
-    Future.delayed(const Duration(seconds: 3), () {
-      if (mounted) {}
-    });
+    }
   }
 
   @override
   void dispose() {
+    // Pastikan UI sistem kembali normal jika splash screen ditutup
+    SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
     _player.dispose();
     super.dispose();
   }
@@ -55,20 +69,19 @@ class _SplashScreenState extends State<SplashScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.white,
-      body: Center(
+      body: SizedBox.expand(
         child: _isVideoInitialized
-            ? SizedBox(
-                width: MediaQuery.of(context).size.width,
-                height: MediaQuery.of(context).size.height,
-                child: Video(
-                  controller: _controller,
-                  controls: NoVideoControls,
-                  fill: Colors.transparent,
-                ),
+            ? Video(
+                controller: _controller,
+                controls: NoVideoControls,
+                fit: BoxFit.contain,
+                fill: Colors.white,
               )
-            : const CircularProgressIndicator(
-                color: Colors.blue,
-              ), // Menunggu video siap
+            : const Center(
+                child: CircularProgressIndicator(
+                  color: Colors.blue,
+                ),
+              ),
       ),
     );
   }
