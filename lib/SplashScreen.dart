@@ -1,5 +1,8 @@
+import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:video_player/video_player.dart';
 
 import 'login_page.dart';
@@ -14,6 +17,7 @@ class SplashScreen extends StatefulWidget {
 class _SplashScreenState extends State<SplashScreen> {
   late VideoPlayerController _controller;
   bool _hasNavigated = false;
+  Map<String, dynamic>? _prefetchedSettings;
 
   @override
   void initState() {
@@ -21,6 +25,9 @@ class _SplashScreenState extends State<SplashScreen> {
 
     // Pastikan status bar terlihat & berwarna putih dengan ikon gelap
     SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
+
+    // 1. Fetch konfigurasi aplikasi di background saat video splash sedang berjalan
+    _prefetchAppSettings();
 
     _controller = VideoPlayerController.asset('assets/video/splash_white.mp4')
       ..initialize().then((_) {
@@ -32,6 +39,29 @@ class _SplashScreenState extends State<SplashScreen> {
       });
 
     _controller.addListener(_checkVideoEnd);
+  }
+
+  /// Mengambil app_settings dari Supabase secara paralel dengan pemutaran video
+  Future<void> _prefetchAppSettings() async {
+    try {
+      final data = await Supabase.instance.client
+          .from('app_settings')
+          .select('nama_aplikasi, logo_url, login_subteks')
+          .eq('id', 1)
+          .maybeSingle();
+
+      if (data != null) {
+        _prefetchedSettings = Map<String, dynamic>.from(data);
+        // Simpan ke SharedPreferences sebagai cache lokal
+        final prefs = await SharedPreferences.getInstance();
+        await prefs.setString(
+          'cached_app_settings',
+          jsonEncode(_prefetchedSettings),
+        );
+      }
+    } catch (e) {
+      debugPrint('Prefetch app_settings gagal: $e');
+    }
   }
 
   void _checkVideoEnd() {
@@ -48,11 +78,11 @@ class _SplashScreenState extends State<SplashScreen> {
           Navigator.of(context).pushReplacement(
             PageRouteBuilder(
               pageBuilder: (context, animation, secondaryAnimation) =>
-                  const LoginPage(),
+                  LoginPage(initialAppSettings: _prefetchedSettings),
               transitionsBuilder:
                   (context, animation, secondaryAnimation, child) {
-                    return FadeTransition(opacity: animation, child: child);
-                  },
+                return FadeTransition(opacity: animation, child: child);
+              },
               transitionDuration: const Duration(milliseconds: 400),
             ),
           );

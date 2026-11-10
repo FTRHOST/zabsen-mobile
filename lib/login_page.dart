@@ -7,7 +7,8 @@ import 'package:url_launcher/url_launcher.dart';
 import 'absen_page.dart';
 
 class LoginPage extends StatefulWidget {
-  const LoginPage({super.key});
+  final Map<String, dynamic>? initialAppSettings;
+  const LoginPage({super.key, this.initialAppSettings});
 
   @override
   State<LoginPage> createState() => _LoginPageState();
@@ -20,6 +21,7 @@ class _LoginPageState extends State<LoginPage> {
 
   bool _obscurePassword = true;
   bool _isLoading = false;
+  bool _isLoadingSettings = true;
 
   // Data dinamis dari app_settings
   String _appName = 'ZIEDA ABSEN';
@@ -36,7 +38,7 @@ class _LoginPageState extends State<LoginPage> {
   @override
   void initState() {
     super.initState();
-    _fetchAppSettings();
+    _initSettings();
   }
 
   @override
@@ -46,7 +48,53 @@ class _LoginPageState extends State<LoginPage> {
     super.dispose();
   }
 
-  /// Mengambil data judul aplikasi, subteks, dan logo dari tabel app_settings
+  /// Inisialisasi app_settings (dari prefetch splash, cache lokal, atau network)
+  Future<void> _initSettings() async {
+    // 1. Jika data sudah di-fetch saat splash screen, langsung gunakan
+    if (widget.initialAppSettings != null) {
+      _applySettings(widget.initialAppSettings!);
+      setState(() {
+        _isLoadingSettings = false;
+      });
+      return;
+    }
+
+    // 2. Coba muat dari cache lokal SharedPreferences
+    final prefs = await SharedPreferences.getInstance();
+    final cached = prefs.getString('cached_app_settings');
+    if (cached != null) {
+      try {
+        final decoded = jsonDecode(cached);
+        if (decoded is Map<String, dynamic>) {
+          _applySettings(decoded);
+          if (mounted) {
+            setState(() {
+              _isLoadingSettings = false;
+            });
+          }
+        }
+      } catch (_) {}
+    }
+
+    // 3. Ambil data terbaru dari Supabase
+    _fetchAppSettings();
+  }
+
+  void _applySettings(Map<String, dynamic> data) {
+    if (data['nama_aplikasi'] != null &&
+        (data['nama_aplikasi'] as String).isNotEmpty) {
+      _appName = data['nama_aplikasi'];
+    }
+    if (data['login_subteks'] != null &&
+        (data['login_subteks'] as String).isNotEmpty) {
+      _subText = data['login_subteks'];
+    }
+    if (data['logo_url'] != null && (data['logo_url'] as String).isNotEmpty) {
+      _logoUrl = data['logo_url'];
+    }
+  }
+
+  /// Mengambil data dari tabel app_settings jika belum siap
   Future<void> _fetchAppSettings() async {
     try {
       final data = await _supabase
@@ -57,22 +105,24 @@ class _LoginPageState extends State<LoginPage> {
 
       if (data != null && mounted) {
         setState(() {
-          if (data['nama_aplikasi'] != null &&
-              (data['nama_aplikasi'] as String).isNotEmpty) {
-            _appName = data['nama_aplikasi'];
-          }
-          if (data['login_subteks'] != null &&
-              (data['login_subteks'] as String).isNotEmpty) {
-            _subText = data['login_subteks'];
-          }
-          if (data['logo_url'] != null &&
-              (data['logo_url'] as String).isNotEmpty) {
-            _logoUrl = data['logo_url'];
-          }
+          _applySettings(data);
+          _isLoadingSettings = false;
+        });
+
+        final prefs = await SharedPreferences.getInstance();
+        await prefs.setString('cached_app_settings', jsonEncode(data));
+      } else if (mounted) {
+        setState(() {
+          _isLoadingSettings = false;
         });
       }
     } catch (e) {
       debugPrint('Gagal memuat app_settings: $e');
+      if (mounted) {
+        setState(() {
+          _isLoadingSettings = false;
+        });
+      }
     }
   }
 
@@ -264,7 +314,11 @@ class _LoginPageState extends State<LoginPage> {
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Icon(Icons.check_circle_rounded, color: Colors.green, size: 64),
+            const Icon(
+              Icons.check_circle_rounded,
+              color: Colors.green,
+              size: 64,
+            ),
             const SizedBox(height: 16),
             const Text(
               'Berhasil Login!',
@@ -335,230 +389,343 @@ class _LoginPageState extends State<LoginPage> {
       body: SafeArea(
         child: Center(
           child: SingleChildScrollView(
-            padding: const EdgeInsets.symmetric(horizontal: 36.0, vertical: 24.0),
-            child: Form(
-              key: _formKey,
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  // --- LOGO APLIKASI ---
-                  Center(
-                    child: _logoUrl != null
-                        ? Image.network(
-                            _logoUrl!,
-                            height: 72,
-                            fit: BoxFit.contain,
-                            errorBuilder: (context, error, stackTrace) => Image.asset(
-                              'assets/images/logo_zieda.png',
-                              height: 72,
-                              fit: BoxFit.contain,
-                            ),
-                          )
-                        : Image.asset(
-                            'assets/images/logo_zieda.png',
-                            height: 72,
-                            fit: BoxFit.contain,
-                          ),
-                  ),
-                  const SizedBox(height: 20),
-
-                  // --- JUDUL & SUBTITLE DINAMIS ---
-                  Text(
-                    _appName,
-                    textAlign: TextAlign.center,
-                    style: const TextStyle(
-                      fontSize: 22,
-                      fontWeight: FontWeight.w900,
-                      color: primaryColor,
-                      letterSpacing: 0.5,
-                    ),
-                  ),
-                  const SizedBox(height: 6),
-                  Text(
-                    _subText,
-                    textAlign: TextAlign.center,
-                    style: const TextStyle(
-                      fontSize: 13,
-                      color: hintColor,
-                      fontWeight: FontWeight.w500,
-                    ),
-                  ),
-                  const SizedBox(height: 36),
-
-                  // --- INPUT FIELD: NAMA PENGGUNA ---
-                  Container(
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(12),
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.black.withValues(alpha: 0.05),
-                          blurRadius: 10,
-                          offset: const Offset(0, 4),
-                        ),
-                      ],
-                    ),
-                    child: TextFormField(
-                      controller: _usernameController,
-                      style: const TextStyle(fontSize: 14, color: Colors.black87),
-                      decoration: InputDecoration(
-                        hintText: 'Nama Pengguna',
-                        hintStyle: const TextStyle(color: hintColor, fontSize: 14),
-                        prefixIcon: const Icon(
-                          Icons.person_outline_rounded,
-                          color: hintColor,
-                          size: 24,
-                        ),
-                        contentPadding: const EdgeInsets.symmetric(
-                          vertical: 18,
-                          horizontal: 16,
-                        ),
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(12),
-                          borderSide: const BorderSide(color: borderColor),
-                        ),
-                        enabledBorder: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(12),
-                          borderSide: const BorderSide(color: borderColor),
-                        ),
-                        focusedBorder: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(12),
-                          borderSide:
-                              const BorderSide(color: primaryColor, width: 1.5),
-                        ),
-                      ),
-                      validator: (value) {
-                        if (value == null || value.trim().isEmpty) {
-                          return 'Nama Pengguna tidak boleh kosong';
-                        }
-                        return null;
-                      },
-                    ),
-                  ),
-                  const SizedBox(height: 18),
-
-                  // --- INPUT FIELD: PASSWORD ---
-                  Container(
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(12),
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.black.withValues(alpha: 0.05),
-                          blurRadius: 10,
-                          offset: const Offset(0, 4),
-                        ),
-                      ],
-                    ),
-                    child: TextFormField(
-                      controller: _passwordController,
-                      obscureText: _obscurePassword,
-                      style: const TextStyle(fontSize: 14, color: Colors.black87),
-                      decoration: InputDecoration(
-                        hintText: 'Password',
-                        hintStyle: const TextStyle(color: hintColor, fontSize: 14),
-                        prefixIcon: const Icon(
-                          Icons.lock_outline_rounded,
-                          color: hintColor,
-                          size: 24,
-                        ),
-                        suffixIcon: IconButton(
-                          icon: Icon(
-                            _obscurePassword
-                                ? Icons.visibility_off_outlined
-                                : Icons.visibility_outlined,
-                            color: hintColor,
-                          ),
-                          onPressed: () {
-                            setState(() {
-                              _obscurePassword = !_obscurePassword;
-                            });
-                          },
-                        ),
-                        contentPadding: const EdgeInsets.symmetric(
-                          vertical: 18,
-                          horizontal: 16,
-                        ),
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(12),
-                          borderSide: const BorderSide(color: borderColor),
-                        ),
-                        enabledBorder: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(12),
-                          borderSide: const BorderSide(color: borderColor),
-                        ),
-                        focusedBorder: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(12),
-                          borderSide:
-                              const BorderSide(color: primaryColor, width: 1.5),
-                        ),
-                      ),
-                      validator: (value) {
-                        if (value == null || value.trim().isEmpty) {
-                          return 'Password tidak boleh kosong';
-                        }
-                        return null;
-                      },
-                    ),
-                  ),
-                  const SizedBox(height: 28),
-
-                  // --- TOMBOL LOGIN ---
-                  SizedBox(
-                    height: 52,
-                    child: ElevatedButton(
-                      onPressed: _isLoading ? null : _handleLogin,
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: primaryColor,
-                        foregroundColor: Colors.white,
-                        elevation: 4,
-                        shadowColor: primaryColor.withValues(alpha: 0.5),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(30),
-                        ),
-                      ),
-                      child: _isLoading
-                          ? const SizedBox(
-                              height: 22,
-                              width: 22,
-                              child: CircularProgressIndicator(
-                                strokeWidth: 2.5,
-                                color: Colors.white,
-                              ),
-                            )
-                          : const Text(
-                              'LOGIN',
-                              style: TextStyle(
-                                fontSize: 16,
-                                fontWeight: FontWeight.bold,
-                                letterSpacing: 1.0,
-                              ),
-                            ),
-                    ),
-                  ),
-                  const SizedBox(height: 16),
-
-                  // --- LUPA PASSWORD / HUBUNGI ADMIN ---
-                  Center(
-                    child: TextButton(
-                      onPressed: _hubungiAdmin,
-                      child: const Text(
-                        'Lupa password? Hubungi Admin',
-                        style: TextStyle(
-                          fontSize: 13,
-                          fontWeight: FontWeight.w600,
-                          color: primaryColor,
-                        ),
-                      ),
-                    ),
-                  ),
-                ],
-              ),
+            padding: const EdgeInsets.symmetric(
+              horizontal: 36.0,
+              vertical: 24.0,
+            ),
+            child: AnimatedSwitcher(
+              duration: const Duration(milliseconds: 350),
+              child: _isLoadingSettings
+                  ? _buildSkeletonUI()
+                  : _buildRealForm(),
             ),
           ),
         ),
       ),
+    );
+  }
+
+  /// UI Skeleton (Placeholder animasi saat data belum selesai diambil)
+  Widget _buildSkeletonUI() {
+    return Column(
+      key: const ValueKey('skeleton_view'),
+      mainAxisAlignment: MainAxisAlignment.center,
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: const [
+        // Skeleton Logo
+        Center(
+          child: _SkeletonBox(width: 72, height: 72, borderRadius: 16),
+        ),
+        SizedBox(height: 20),
+
+        // Skeleton Judul & Subtitle
+        Center(
+          child: _SkeletonBox(width: 170, height: 26, borderRadius: 6),
+        ),
+        SizedBox(height: 10),
+        Center(
+          child: _SkeletonBox(width: 220, height: 14, borderRadius: 4),
+        ),
+        SizedBox(height: 40),
+
+        // Skeleton Input 1
+        _SkeletonBox(width: double.infinity, height: 56, borderRadius: 12),
+        SizedBox(height: 18),
+
+        // Skeleton Input 2
+        _SkeletonBox(width: double.infinity, height: 56, borderRadius: 12),
+        SizedBox(height: 28),
+
+        // Skeleton Tombol Login
+        _SkeletonBox(width: double.infinity, height: 52, borderRadius: 30),
+        SizedBox(height: 20),
+
+        // Skeleton Lupa Password
+        Center(
+          child: _SkeletonBox(width: 190, height: 16, borderRadius: 4),
+        ),
+      ],
+    );
+  }
+
+  /// UI Form Nyata setelah data siap
+  Widget _buildRealForm() {
+    return Form(
+      key: _formKey,
+      child: Column(
+        key: const ValueKey('real_form_view'),
+        mainAxisAlignment: MainAxisAlignment.center,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          // --- LOGO APLIKASI ---
+          Center(
+            child: _logoUrl != null
+                ? Image.network(
+                    _logoUrl!,
+                    height: 72,
+                    fit: BoxFit.contain,
+                    errorBuilder: (context, error, stackTrace) => Image.asset(
+                      'assets/images/logo_zieda.png',
+                      height: 72,
+                      fit: BoxFit.contain,
+                    ),
+                  )
+                : Image.asset(
+                    'assets/images/logo_zieda.png',
+                    height: 72,
+                    fit: BoxFit.contain,
+                  ),
+          ),
+          const SizedBox(height: 20),
+
+          // --- JUDUL & SUBTITLE DINAMIS ---
+          Text(
+            _appName,
+            textAlign: TextAlign.center,
+            style: const TextStyle(
+              fontSize: 22,
+              fontWeight: FontWeight.w900,
+              color: primaryColor,
+              letterSpacing: 0.5,
+            ),
+          ),
+          const SizedBox(height: 6),
+          Text(
+            _subText,
+            textAlign: TextAlign.center,
+            style: const TextStyle(
+              fontSize: 13,
+              color: hintColor,
+              fontWeight: FontWeight.w500,
+            ),
+          ),
+          const SizedBox(height: 36),
+
+          // --- INPUT FIELD: NAMA PENGGUNA ---
+          Container(
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(12),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.05),
+                  blurRadius: 10,
+                  offset: const Offset(0, 4),
+                ),
+              ],
+            ),
+            child: TextFormField(
+              controller: _usernameController,
+              style: const TextStyle(fontSize: 14, color: Colors.black87),
+              decoration: InputDecoration(
+                hintText: 'Nama Pengguna',
+                hintStyle: const TextStyle(color: hintColor, fontSize: 14),
+                prefixIcon: const Icon(
+                  Icons.person_outline_rounded,
+                  color: hintColor,
+                  size: 24,
+                ),
+                contentPadding: const EdgeInsets.symmetric(
+                  vertical: 18,
+                  horizontal: 16,
+                ),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: const BorderSide(color: borderColor),
+                ),
+                enabledBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: const BorderSide(color: borderColor),
+                ),
+                focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: const BorderSide(color: primaryColor, width: 1.5),
+                ),
+              ),
+              validator: (value) {
+                if (value == null || value.trim().isEmpty) {
+                  return 'Nama Pengguna tidak boleh kosong';
+                }
+                return null;
+              },
+            ),
+          ),
+          const SizedBox(height: 18),
+
+          // --- INPUT FIELD: PASSWORD ---
+          Container(
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(12),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.05),
+                  blurRadius: 10,
+                  offset: const Offset(0, 4),
+                ),
+              ],
+            ),
+            child: TextFormField(
+              controller: _passwordController,
+              obscureText: _obscurePassword,
+              style: const TextStyle(fontSize: 14, color: Colors.black87),
+              decoration: InputDecoration(
+                hintText: 'Password',
+                hintStyle: const TextStyle(color: hintColor, fontSize: 14),
+                prefixIcon: const Icon(
+                  Icons.lock_outline_rounded,
+                  color: hintColor,
+                  size: 24,
+                ),
+                suffixIcon: IconButton(
+                  icon: Icon(
+                    _obscurePassword
+                        ? Icons.visibility_off_outlined
+                        : Icons.visibility_outlined,
+                    color: hintColor,
+                  ),
+                  onPressed: () {
+                    setState(() {
+                      _obscurePassword = !_obscurePassword;
+                    });
+                  },
+                ),
+                contentPadding: const EdgeInsets.symmetric(
+                  vertical: 18,
+                  horizontal: 16,
+                ),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: const BorderSide(color: borderColor),
+                ),
+                enabledBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: const BorderSide(color: borderColor),
+                ),
+                focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: const BorderSide(color: primaryColor, width: 1.5),
+                ),
+              ),
+              validator: (value) {
+                if (value == null || value.trim().isEmpty) {
+                  return 'Password tidak boleh kosong';
+                }
+                return null;
+              },
+            ),
+          ),
+          const SizedBox(height: 28),
+
+          // --- TOMBOL LOGIN ---
+          SizedBox(
+            height: 52,
+            child: ElevatedButton(
+              onPressed: _isLoading ? null : _handleLogin,
+              style: ElevatedButton.styleFrom(
+                backgroundColor: primaryColor,
+                foregroundColor: Colors.white,
+                elevation: 4,
+                shadowColor: primaryColor.withValues(alpha: 0.5),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(30),
+                ),
+              ),
+              child: _isLoading
+                  ? const SizedBox(
+                      height: 22,
+                      width: 22,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2.5,
+                        color: Colors.white,
+                      ),
+                    )
+                  : const Text(
+                      'LOGIN',
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                        letterSpacing: 1.0,
+                      ),
+                    ),
+            ),
+          ),
+          const SizedBox(height: 16),
+
+          // --- LUPA PASSWORD / HUBUNGI ADMIN ---
+          Center(
+            child: TextButton(
+              onPressed: _hubungiAdmin,
+              child: const Text(
+                'Lupa password? Hubungi Admin',
+                style: TextStyle(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w600,
+                  color: primaryColor,
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// Widget Skeleton dengan efek animasi berdenyut (Pulsing Shimmer)
+class _SkeletonBox extends StatefulWidget {
+  final double width;
+  final double height;
+  final double borderRadius;
+
+  const _SkeletonBox({
+    required this.width,
+    required this.height,
+    this.borderRadius = 8,
+  });
+
+  @override
+  State<_SkeletonBox> createState() => _SkeletonBoxState();
+}
+
+class _SkeletonBoxState extends State<_SkeletonBox>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _animController;
+  late final Animation<double> _opacityAnim;
+
+  @override
+  void initState() {
+    super.initState();
+    _animController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 900),
+    )..repeat(reverse: true);
+
+    _opacityAnim = Tween<double>(begin: 0.3, end: 0.75).animate(
+      CurvedAnimation(parent: _animController, curve: Curves.easeInOut),
+    );
+  }
+
+  @override
+  void dispose() {
+    _animController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedBuilder(
+      animation: _opacityAnim,
+      builder: (context, child) {
+        return Container(
+          width: widget.width,
+          height: widget.height,
+          decoration: BoxDecoration(
+            color: Colors.grey.shade300.withValues(alpha: _opacityAnim.value),
+            borderRadius: BorderRadius.circular(widget.borderRadius),
+          ),
+        );
+      },
     );
   }
 }
