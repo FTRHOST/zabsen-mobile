@@ -1,5 +1,7 @@
 import 'dart:async';
+import 'dart:convert';
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class AbsenPage extends StatefulWidget {
   const AbsenPage({super.key});
@@ -12,10 +14,12 @@ class _AbsenPageState extends State<AbsenPage> {
   int _currentNavIndex = 0;
   late Timer _timer;
   DateTime _currentTime = DateTime.now();
+  String _userName = 'Pengguna';
 
   @override
   void initState() {
     super.initState();
+    _loadUser();
     // Jam terus berjalan otomatis tiap detik
     _timer = Timer.periodic(const Duration(seconds: 1), (timer) {
       if (mounted) {
@@ -24,6 +28,21 @@ class _AbsenPageState extends State<AbsenPage> {
         });
       }
     });
+  }
+
+  Future<void> _loadUser() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final userStr = prefs.getString('userLogin');
+      if (userStr != null) {
+        final userData = jsonDecode(userStr);
+        if (userData['nama'] != null && mounted) {
+          setState(() {
+            _userName = userData['nama'];
+          });
+        }
+      }
+    } catch (_) {}
   }
 
   @override
@@ -77,17 +96,17 @@ class _AbsenPageState extends State<AbsenPage> {
                       ),
                       const SizedBox(height: 4),
                       Row(
-                        children: const [
+                        children: [
                           Text(
-                            'Selamat Datang, Nama',
-                            style: TextStyle(
+                            'Selamat Datang, $_userName',
+                            style: const TextStyle(
                               fontSize: 14,
                               fontWeight: FontWeight.w600,
                               color: Color(0xFF1E1E1E),
                             ),
                           ),
-                          SizedBox(width: 4),
-                          Text('👋', style: TextStyle(fontSize: 14)),
+                          const SizedBox(width: 4),
+                          const Text('👋', style: TextStyle(fontSize: 14)),
                         ],
                       ),
                     ],
