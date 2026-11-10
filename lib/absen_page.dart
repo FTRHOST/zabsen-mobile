@@ -76,7 +76,7 @@ class _AbsenPageState extends State<AbsenPage> {
             crossAxisAlignment: CrossAxisAlignment.center,
             children: [
               // ==========================================
-              // 1. HEADER (Identitas + Sapaan + Logo Kanan)
+              // 1. HEADER (Identitas + Sapaan + Foto Profil Kanan)
               // ==========================================
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -112,32 +112,34 @@ class _AbsenPageState extends State<AbsenPage> {
                     ],
                   ),
 
-                  // Wadah Logo Zieda di pojok kanan atas
+                  // Wadah Foto Profil di pojok kanan atas
                   Container(
                     width: 48,
                     height: 48,
-                    padding: const EdgeInsets.all(4),
                     decoration: BoxDecoration(
                       color: Colors.white,
                       shape: BoxShape.circle,
+                      border: Border.all(color: const Color(0xFFE8E8E8), width: 1.5),
                       boxShadow: [
                         BoxShadow(
                           color: Colors.black.withOpacity(0.06),
-                          blurRadius: 10,
+                          blurRadius: 8,
                           offset: const Offset(0, 3),
                         ),
                       ],
                     ),
-                    child: Image.asset(
-                      'assets/images/logo_zieda.png',
-                      fit: BoxFit.contain,
-                      errorBuilder: (context, error, stackTrace) {
-                        return const Icon(
-                          Icons.bakery_dining_rounded,
-                          color: Color(0xFF4A1010),
-                          size: 26,
-                        );
-                      },
+                    child: ClipOval(
+                      child: Image.asset(
+                        'assets/images/profil.png',
+                        fit: BoxFit.cover,
+                        errorBuilder: (context, error, stackTrace) {
+                          return const Icon(
+                            Icons.person_rounded,
+                            color: Color(0xFF4A1010),
+                            size: 26,
+                          );
+                        },
+                      ),
                     ),
                   ),
                 ],
@@ -146,7 +148,7 @@ class _AbsenPageState extends State<AbsenPage> {
               const SizedBox(height: 24),
 
               // ==========================================
-              // 2. KARTU JAM & TANGGAL (Clean Card Shape)
+              // 2. KARTU JAM & TANGGAL
               // ==========================================
               Container(
                 width: double.infinity,
@@ -206,7 +208,7 @@ class _AbsenPageState extends State<AbsenPage> {
               const SizedBox(height: 22),
 
               // ==========================================
-              // 3. KOTAK PETA (Satellite Rounded Box)
+              // 3. KOTAK PETA
               // ==========================================
               Container(
                 height: 330,
@@ -226,7 +228,6 @@ class _AbsenPageState extends State<AbsenPage> {
                 child: Stack(
                   fit: StackFit.expand,
                   children: [
-                    // Tampilan Satelit (Bisa diganti GoogleMap / Network Image Satelit)
                     Image.network(
                       'https://mt1.google.com/vt/lyrs=s&x=839&y=528&z=10',
                       fit: BoxFit.cover,
@@ -243,8 +244,6 @@ class _AbsenPageState extends State<AbsenPage> {
                         );
                       },
                     ),
-
-                    // Efek bayangan halus di tepian frame peta
                     Container(
                       decoration: BoxDecoration(
                         gradient: LinearGradient(
@@ -265,7 +264,7 @@ class _AbsenPageState extends State<AbsenPage> {
               const SizedBox(height: 22),
 
               // ==========================================
-              // 4. TOMBOL ABSEN (Capsule / Pill Shape)
+              // 4. TOMBOL ABSEN
               // ==========================================
               GestureDetector(
                 onTap: () {
@@ -301,7 +300,6 @@ class _AbsenPageState extends State<AbsenPage> {
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      // Lingkaran target ganda persis mockup
                       Container(
                         width: 32,
                         height: 32,
@@ -342,7 +340,7 @@ class _AbsenPageState extends State<AbsenPage> {
       ),
 
       // ==========================================
-      // 5. BOTTOM NAVIGATION BAR (Clean 4 Tabs)
+      // 5. BOTTOM NAVIGATION BAR
       // ==========================================
       bottomNavigationBar: Container(
         decoration: const BoxDecoration(
