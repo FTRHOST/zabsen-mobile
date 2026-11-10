@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:media_kit/media_kit.dart';
-import 'package:media_kit_video/media_kit_video.dart';
+import 'package:video_player/video_player.dart';
 
 import 'login_page.dart';
 
@@ -13,75 +12,82 @@ class SplashScreen extends StatefulWidget {
 }
 
 class _SplashScreenState extends State<SplashScreen> {
-  late final Player _player;
-  late final VideoController _controller;
-  bool _isVideoInitialized = false;
+  late VideoPlayerController _controller;
+  bool _hasNavigated = false;
 
   @override
   void initState() {
     super.initState();
 
-    // Sembunyikan status bar & navigasi agar full screen
-    SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersive);
+    // Pastikan status bar terlihat & berwarna putih dengan ikon gelap
+    SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
 
-    _player = Player();
-    _controller = VideoController(_player);
+    _controller = VideoPlayerController.asset('assets/video/splash_white.mp4')
+      ..initialize().then((_) {
+        if (mounted) {
+          _controller.setLooping(false); // Hanya putar 1 kali
+          _controller.play();
+          setState(() {});
+        }
+      });
 
-    _initializeVideo();
+    _controller.addListener(_checkVideoEnd);
   }
 
-  Future<void> _initializeVideo() async {
-    // Atur latar belakang mpv agar transparansi webm dirender sebagai warna putih
-    try {
-      final dynamic platform = _player.platform;
-      await platform.setProperty('background-color', '#FFFFFF');
-      await platform.setProperty('background', 'color');
-    } catch (_) {}
+  void _checkVideoEnd() {
+    // Deteksi saat video telah selesai diputar sampai akhir
+    if (_controller.value.isInitialized &&
+        !_hasNavigated &&
+        _controller.value.position >= _controller.value.duration) {
+      _hasNavigated = true;
+      _controller.pause(); // Pertahankan (freeze) frame terakhir
 
-    _player.stream.completed.listen((bool completed) {
-      if (completed && mounted) {
-        // Kembalikan UI sistem normal sebelum beralih ke LoginPage
-        SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
-        Navigator.of(context).pushReplacement(
-          MaterialPageRoute(builder: (context) => const LoginPage()),
-        );
-      }
-    });
-
-    await _player.open(Media('asset://assets/video/splash_white.mp4'));
-    if (mounted) {
-      setState(() {
-        _isVideoInitialized = true;
+      // Tahan frame terakhir sejenak, lalu transisi halus (fade) ke LoginPage
+      Future.delayed(const Duration(milliseconds: 300), () {
+        if (mounted) {
+          Navigator.of(context).pushReplacement(
+            PageRouteBuilder(
+              pageBuilder: (context, animation, secondaryAnimation) =>
+                  const LoginPage(),
+              transitionsBuilder:
+                  (context, animation, secondaryAnimation, child) {
+                return FadeTransition(opacity: animation, child: child);
+              },
+              transitionDuration: const Duration(milliseconds: 400),
+            ),
+          );
+        }
       });
-      _player.play();
     }
   }
 
   @override
   void dispose() {
-    // Pastikan UI sistem kembali normal jika splash screen ditutup
-    SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
-    _player.dispose();
+    _controller.removeListener(_checkVideoEnd);
+    _controller.dispose();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: Colors.white,
-      body: SizedBox.expand(
-        child: _isVideoInitialized
-            ? Video(
-                controller: _controller,
-                controls: NoVideoControls,
-                fit: BoxFit.contain,
-                fill: Colors.white,
-              )
-            : const Center(
-                child: CircularProgressIndicator(
-                  color: Colors.blue,
-                ),
-              ),
+    return AnnotatedRegion<SystemUiOverlayStyle>(
+      value: const SystemUiOverlayStyle(
+        statusBarColor: Colors.white,
+        statusBarIconBrightness: Brightness.dark,
+        statusBarBrightness: Brightness.light,
+        systemNavigationBarColor: Colors.white,
+        systemNavigationBarIconBrightness: Brightness.dark,
+      ),
+      child: Scaffold(
+        backgroundColor: Colors.white,
+        body: Center(
+          child: _controller.value.isInitialized
+              ? AspectRatio(
+                  aspectRatio: _controller.value.aspectRatio,
+                  child: VideoPlayer(_controller),
+                )
+              : const SizedBox.shrink(),
+        ),
       ),
     );
   }
