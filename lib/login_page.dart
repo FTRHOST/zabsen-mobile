@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'absen_page.dart';
 
 // Ganti 'first_app' menjadi 'zieda_app' jika nama paket di pubspec.yaml sudah diganti:
 // import 'package:zieda_app/pages/register_page.dart';
@@ -32,11 +33,11 @@ class _LoginPageState extends State<LoginPage> {
 
   void _handleLogin() {
     if (_formKey.currentState!.validate()) {
-      // Jika berhasil login, arahkan ke HomePage:
-      // Navigator.pushReplacement(
-      //   context,
-      //   MaterialPageRoute(builder: (context) => const HomePage()),
-      // );
+      // Jika berhasil login, arahkan ke AbsenPage:
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (context) => const AbsenPage()),
+      );
     }
   }
 
