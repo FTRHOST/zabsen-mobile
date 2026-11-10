@@ -16,7 +16,7 @@ class _AbsenPageState extends State<AbsenPage> {
   @override
   void initState() {
     super.initState();
-    // Update jam otomatis setiap detik
+    // Jam terus berjalan otomatis tiap detik
     _timer = Timer.periodic(const Duration(seconds: 1), (timer) {
       if (mounted) {
         setState(() {
@@ -32,11 +32,9 @@ class _AbsenPageState extends State<AbsenPage> {
     super.dispose();
   }
 
-  // Format jam dua digit
-  String _formatTime(int n) => n.toString().padLeft(2, '0');
+  String _formatDigit(int n) => n.toString().padLeft(2, '0');
 
-  // Format nama hari & bulan bahasa Indonesia
-  String _getFormattedDate(DateTime date) {
+  String _formatTanggal(DateTime date) {
     const hari = ['Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu', 'Minggu'];
     const bulan = [
       'Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni',
@@ -47,19 +45,19 @@ class _AbsenPageState extends State<AbsenPage> {
 
   @override
   Widget build(BuildContext context) {
-    final String hourString = '${_formatTime(_currentTime.hour)}:${_formatTime(_currentTime.minute)}';
-    final String dateString = _getFormattedDate(_currentTime);
+    final String jamMenit = '${_formatDigit(_currentTime.hour)}:${_formatDigit(_currentTime.minute)}';
+    final String tanggalFormatted = _formatTanggal(_currentTime);
 
     return Scaffold(
-      backgroundColor: const Color(0xFFFBFBFB),
+      backgroundColor: Colors.white,
       body: SafeArea(
         child: SingleChildScrollView(
-          padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 16.0),
+          padding: const EdgeInsets.symmetric(horizontal: 26.0, vertical: 16.0),
           child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
+            crossAxisAlignment: CrossAxisAlignment.center,
             children: [
               // ==========================================
-              // 1. HEADER: Identitas Aplikasi + Logo (Tanpa Logout)
+              // 1. HEADER (Identitas + Sapaan + Logo Kanan)
               // ==========================================
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -71,9 +69,9 @@ class _AbsenPageState extends State<AbsenPage> {
                       const Text(
                         'ZIEDA ABSEN',
                         style: TextStyle(
-                          fontSize: 22,
+                          fontSize: 20,
                           fontWeight: FontWeight.w900,
-                          color: Color(0xFF4A1515), // Warna marun/cokelat khas Zieda
+                          color: Color(0xFF4A1010),
                           letterSpacing: 0.5,
                         ),
                       ),
@@ -85,7 +83,7 @@ class _AbsenPageState extends State<AbsenPage> {
                             style: TextStyle(
                               fontSize: 14,
                               fontWeight: FontWeight.w600,
-                              color: Color(0xFF2C2C2C),
+                              color: Color(0xFF1E1E1E),
                             ),
                           ),
                           SizedBox(width: 4),
@@ -95,10 +93,11 @@ class _AbsenPageState extends State<AbsenPage> {
                     ],
                   ),
 
-                  // Logo Zieda di kanan atas
+                  // Wadah Logo Zieda di pojok kanan atas
                   Container(
-                    width: 52,
-                    height: 52,
+                    width: 48,
+                    height: 48,
+                    padding: const EdgeInsets.all(4),
                     decoration: BoxDecoration(
                       color: Colors.white,
                       shape: BoxShape.circle,
@@ -106,19 +105,18 @@ class _AbsenPageState extends State<AbsenPage> {
                         BoxShadow(
                           color: Colors.black.withOpacity(0.06),
                           blurRadius: 10,
-                          offset: const Offset(0, 4),
+                          offset: const Offset(0, 3),
                         ),
                       ],
                     ),
-                    clipBehavior: Clip.antiAlias,
                     child: Image.asset(
                       'assets/images/logo_zieda.png',
                       fit: BoxFit.contain,
                       errorBuilder: (context, error, stackTrace) {
                         return const Icon(
                           Icons.bakery_dining_rounded,
-                          color: Color(0xFF4A1515),
-                          size: 30,
+                          color: Color(0xFF4A1010),
+                          size: 26,
                         );
                       },
                     ),
@@ -129,18 +127,19 @@ class _AbsenPageState extends State<AbsenPage> {
               const SizedBox(height: 24),
 
               // ==========================================
-              // 2. KARTU JAM & TANGGAL
+              // 2. KARTU JAM & TANGGAL (Clean Card Shape)
               // ==========================================
               Container(
                 width: double.infinity,
-                padding: const EdgeInsets.symmetric(vertical: 24.0, horizontal: 16.0),
+                padding: const EdgeInsets.symmetric(vertical: 26.0, horizontal: 16.0),
                 decoration: BoxDecoration(
                   color: Colors.white,
-                  borderRadius: BorderRadius.circular(28),
+                  borderRadius: BorderRadius.circular(32),
+                  border: Border.all(color: const Color(0xFFE8E8E8), width: 1.5),
                   boxShadow: [
                     BoxShadow(
                       color: Colors.black.withOpacity(0.05),
-                      blurRadius: 14,
+                      blurRadius: 16,
                       offset: const Offset(0, 6),
                     ),
                   ],
@@ -153,11 +152,11 @@ class _AbsenPageState extends State<AbsenPage> {
                       textBaseline: TextBaseline.alphabetic,
                       children: [
                         Text(
-                          hourString,
+                          jamMenit,
                           style: const TextStyle(
                             fontSize: 48,
                             fontWeight: FontWeight.w900,
-                            color: Color(0xFF1E1E1E),
+                            color: Color(0xFF230505),
                             letterSpacing: -1,
                           ),
                         ),
@@ -167,17 +166,17 @@ class _AbsenPageState extends State<AbsenPage> {
                           style: TextStyle(
                             fontSize: 18,
                             fontWeight: FontWeight.w700,
-                            color: Color(0xFF4A1515),
+                            color: Color(0xFF4A1010),
                           ),
                         ),
                       ],
                     ),
                     const SizedBox(height: 6),
                     Text(
-                      dateString,
+                      tanggalFormatted,
                       style: const TextStyle(
-                        fontSize: 13,
-                        color: Color(0xFF757575),
+                        fontSize: 12,
+                        color: Color(0xFF5A3B3B),
                         fontWeight: FontWeight.w500,
                       ),
                     ),
@@ -185,59 +184,57 @@ class _AbsenPageState extends State<AbsenPage> {
                 ),
               ),
 
-              const SizedBox(height: 20),
+              const SizedBox(height: 22),
 
               // ==========================================
-              // 3. KOTAK MAP (PETA LOKASI)
+              // 3. KOTAK PETA (Satellite Rounded Box)
               // ==========================================
               Container(
                 height: 330,
                 width: double.infinity,
                 decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(32),
+                  borderRadius: BorderRadius.circular(34),
+                  border: Border.all(color: const Color(0xFF401010), width: 2),
                   boxShadow: [
                     BoxShadow(
-                      color: Colors.black.withOpacity(0.08),
-                      blurRadius: 12,
+                      color: Colors.black.withOpacity(0.12),
+                      blurRadius: 16,
                       offset: const Offset(0, 6),
                     ),
                   ],
                 ),
                 clipBehavior: Clip.antiAlias,
                 child: Stack(
+                  fit: StackFit.expand,
                   children: [
-                    // Tampilan Peta (Bisa diganti widget GoogleMap / FlutterMap)
-                    Positioned.fill(
-                      child: Container(
-                        color: Colors.grey.shade300,
-                        child: const Center(
-                          child: Icon(
-                            Icons.map_rounded,
-                            size: 64,
-                            color: Colors.black38,
+                    // Tampilan Satelit (Bisa diganti GoogleMap / Network Image Satelit)
+                    Image.network(
+                      'https://mt1.google.com/vt/lyrs=s&x=839&y=528&z=10',
+                      fit: BoxFit.cover,
+                      errorBuilder: (context, error, stackTrace) {
+                        return Container(
+                          color: const Color(0xFF33422E),
+                          child: const Center(
+                            child: Icon(
+                              Icons.satellite_alt_rounded,
+                              size: 56,
+                              color: Colors.white54,
+                            ),
                           ),
-                        ),
-                      ),
+                        );
+                      },
                     ),
 
-                    // Badge status radius lokasi di dalam peta
-                    Positioned(
-                      top: 16,
-                      left: 16,
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                        decoration: BoxDecoration(
-                          color: Colors.white.withOpacity(0.9),
-                          borderRadius: BorderRadius.circular(20),
-                        ),
-                        child: Row(
-                          children: const [
-                            Icon(Icons.location_on, color: Colors.green, size: 16),
-                            SizedBox(width: 4),
-                            Text(
-                              'Dalam Radius Kantor',
-                              style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
-                            ),
+                    // Efek bayangan halus di tepian frame peta
+                    Container(
+                      decoration: BoxDecoration(
+                        gradient: LinearGradient(
+                          begin: Alignment.topCenter,
+                          end: Alignment.bottomCenter,
+                          colors: [
+                            Colors.black.withOpacity(0.15),
+                            Colors.transparent,
+                            Colors.black.withOpacity(0.2),
                           ],
                         ),
                       ),
@@ -246,17 +243,18 @@ class _AbsenPageState extends State<AbsenPage> {
                 ),
               ),
 
-              const SizedBox(height: 20),
+              const SizedBox(height: 22),
 
               // ==========================================
-              // 4. TOMBOL UTAMA ABSEN
+              // 4. TOMBOL ABSEN (Capsule / Pill Shape)
               // ==========================================
               GestureDetector(
                 onTap: () {
                   ScaffoldMessenger.of(context).showSnackBar(
                     const SnackBar(
                       content: Text('Presensi berhasil dicatat!'),
-                      backgroundColor: Color(0xFF381212),
+                      backgroundColor: Color(0xFF2D0707),
+                      duration: Duration(seconds: 2),
                     ),
                   );
                 },
@@ -264,11 +262,18 @@ class _AbsenPageState extends State<AbsenPage> {
                   height: 60,
                   width: double.infinity,
                   decoration: BoxDecoration(
-                    color: const Color(0xFF381212), // Warna gelap elegan sesuai gambar
-                    borderRadius: BorderRadius.circular(32),
+                    borderRadius: BorderRadius.circular(40),
+                    gradient: const LinearGradient(
+                      begin: Alignment.topCenter,
+                      end: Alignment.bottomCenter,
+                      colors: [
+                        Color(0xFF3B0B0B),
+                        Color(0xFF1E0404),
+                      ],
+                    ),
                     boxShadow: [
                       BoxShadow(
-                        color: const Color(0xFF381212).withOpacity(0.35),
+                        color: const Color(0xFF2D0707).withOpacity(0.4),
                         blurRadius: 14,
                         offset: const Offset(0, 6),
                       ),
@@ -276,14 +281,28 @@ class _AbsenPageState extends State<AbsenPage> {
                   ),
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.center,
-                    children: const [
-                      Icon(
-                        Icons.radio_button_checked,
-                        color: Colors.white,
-                        size: 28,
+                    children: [
+                      // Lingkaran target ganda persis mockup
+                      Container(
+                        width: 32,
+                        height: 32,
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          border: Border.all(color: Colors.white, width: 2.5),
+                        ),
+                        child: Center(
+                          child: Container(
+                            width: 14,
+                            height: 14,
+                            decoration: const BoxDecoration(
+                              shape: BoxShape.circle,
+                              color: Colors.white,
+                            ),
+                          ),
+                        ),
                       ),
-                      SizedBox(width: 12),
-                      Text(
+                      const SizedBox(width: 14),
+                      const Text(
                         'Absen',
                         style: TextStyle(
                           fontSize: 20,
@@ -304,13 +323,13 @@ class _AbsenPageState extends State<AbsenPage> {
       ),
 
       // ==========================================
-      // 5. BOTTOM NAVIGATION BAR
+      // 5. BOTTOM NAVIGATION BAR (Clean 4 Tabs)
       // ==========================================
       bottomNavigationBar: Container(
-        decoration: BoxDecoration(
+        decoration: const BoxDecoration(
           color: Colors.white,
           border: Border(
-            top: BorderSide(color: Colors.grey.shade200, width: 1),
+            top: BorderSide(color: Color(0xFFECECEC), width: 1.2),
           ),
         ),
         child: BottomNavigationBar(
@@ -319,29 +338,29 @@ class _AbsenPageState extends State<AbsenPage> {
             setState(() {
               _currentNavIndex = index;
             });
-            // Navigasi ke profil/cuti/kalender dapat ditambahkan di sini
           },
           type: BottomNavigationBarType.fixed,
           backgroundColor: Colors.white,
-          selectedItemColor: const Color(0xFF381212),
-          unselectedItemColor: const Color(0xFF8E8E93),
-          selectedLabelStyle: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12),
+          elevation: 0,
+          selectedItemColor: Colors.black,
+          unselectedItemColor: const Color(0xFF6E6E6E),
+          selectedLabelStyle: const TextStyle(fontWeight: FontWeight.w700, fontSize: 12),
           unselectedLabelStyle: const TextStyle(fontWeight: FontWeight.w500, fontSize: 12),
           items: const [
             BottomNavigationBarItem(
-              icon: Icon(Icons.person_pin_circle_rounded),
+              icon: Icon(Icons.person_pin, size: 26),
               label: 'Absen',
             ),
             BottomNavigationBarItem(
-              icon: Icon(Icons.badge_outlined),
+              icon: Icon(Icons.badge_outlined, size: 26),
               label: 'Cuti',
             ),
             BottomNavigationBarItem(
-              icon: Icon(Icons.calendar_month_outlined),
+              icon: Icon(Icons.calendar_month_outlined, size: 26),
               label: 'Kalender',
             ),
             BottomNavigationBarItem(
-              icon: Icon(Icons.manage_accounts_outlined),
+              icon: Icon(Icons.manage_accounts_outlined, size: 26),
               label: 'Profil',
             ),
           ],
