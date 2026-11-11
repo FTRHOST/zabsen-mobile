@@ -480,17 +480,6 @@ class _LoginPageState extends State<LoginPage> {
 
           // --- JUDUL & SUBTITLE DINAMIS ---
           Text(
-            _appName,
-            textAlign: TextAlign.center,
-            style: const TextStyle(
-              fontSize: 22,
-              fontWeight: FontWeight.w900,
-              color: primaryColor,
-              letterSpacing: 0.5,
-            ),
-          ),
-          const SizedBox(height: 6),
-          Text(
             _subText,
             textAlign: TextAlign.center,
             style: const TextStyle(
