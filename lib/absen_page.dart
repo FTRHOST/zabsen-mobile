@@ -95,7 +95,6 @@ class _AbsenPageState extends State<AbsenPage> {
   }
 
   /// Menampilkan tombol Admin hanya untuk role HR / Super Admin
-  /// (sama seperti web referensi).
   bool get _isAdmin {
     final role = _userRole.trim().toLowerCase();
     return role == 'hr' || role == 'super admin';
@@ -113,7 +112,7 @@ class _AbsenPageState extends State<AbsenPage> {
     });
   }
 
-  /// Membuka panel admin web (web-references-zabsen/admin.html).
+  /// Membuka panel admin web.
   Future<void> _openAdminPanel() async {
     final baseUrl = kAdminPanelUrl.trim();
 
@@ -137,8 +136,8 @@ class _AbsenPageState extends State<AbsenPage> {
           ),
           content: const Text(
             'URL panel admin web belum dikonfigurasi.\n\n'
-            'Isi konstanta kAdminPanelUrl pada lib/app_config.dart dengan '
-            'alamat web dashboard Zieda Absen.',
+                'Isi konstanta kAdminPanelUrl pada lib/app_config.dart dengan '
+                'alamat web dashboard Zieda Absen.',
             style: TextStyle(fontSize: 14),
           ),
           actions: [
@@ -178,7 +177,7 @@ class _AbsenPageState extends State<AbsenPage> {
     }
   }
 
-  /// Tombol pil pada header (gaya web referensi).
+  /// Tombol pil pada header.
   Widget _buildHeaderAction({
     required String label,
     required VoidCallback onTap,
@@ -204,8 +203,7 @@ class _AbsenPageState extends State<AbsenPage> {
     );
   }
 
-  /// Header global aplikasi (tampil di semua tab, seperti web referensi).
-  /// Foto profil lama diganti tombol Admin (khusus HR/Super Admin) & Logout.
+  /// Header global aplikasi.
   Widget _buildAppHeader() {
     return Container(
       color: Colors.white,
@@ -316,18 +314,16 @@ class _AbsenPageState extends State<AbsenPage> {
     // 2. Ambil data kantor dari Supabase API
     try {
       final supabase = Supabase.instance.client;
-      final List<dynamic> dataKantor = await supabase
-          .from('kantor')
-          .select('*');
+      final List<dynamic> dataKantor =
+      await supabase.from('kantor').select('*');
 
       if (dataKantor.isNotEmpty && mounted) {
-        _listKantor = dataKantor
-            .map((e) => Map<String, dynamic>.from(e))
-            .toList();
+  _listKantor = [];
+            dataKantor.map((e) => Map<String, dynamic>.from(e)).toList();
 
         // Cari kantor cabang yang ditugaskan ke user
         final assigned = _listKantor.firstWhere(
-          (k) => k['nama'] == _userCabang,
+              (k) => k['nama'] == _userCabang,
           orElse: () => _listKantor.first,
         );
 
@@ -377,9 +373,8 @@ class _AbsenPageState extends State<AbsenPage> {
 
       if (mounted) {
         setState(() {
-          _riwayatHariIni = rows
-              .map((e) => Map<String, dynamic>.from(e))
-              .toList();
+  _riwayatHariIni = [];
+              rows.map((e) => Map<String, dynamic>.from(e)).toList();
           _isLoadingRiwayat = false;
         });
       }
@@ -500,7 +495,6 @@ class _AbsenPageState extends State<AbsenPage> {
       return;
     }
 
-    // Pastikan sesi Supabase Auth masih aktif sebelum menulis ke database.
     if (Supabase.instance.client.auth.currentSession == null) {
       if (!mounted) return;
       showDialog(
@@ -513,7 +507,7 @@ class _AbsenPageState extends State<AbsenPage> {
           title: const Text('Sesi Login Berakhir'),
           content: const Text(
             'Sesi keamanan Anda sudah berakhir. Silakan login kembali untuk '
-            'melanjutkan absensi.',
+                'melanjutkan absensi.',
             style: TextStyle(fontSize: 14),
           ),
           actions: [
@@ -561,7 +555,7 @@ class _AbsenPageState extends State<AbsenPage> {
       ]);
 
       if (mounted) {
-        Navigator.of(context).pop(); // Tutup loading dialog
+        Navigator.of(context).pop();
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('Presensi $tipe berhasil dicatat!'),
@@ -572,7 +566,7 @@ class _AbsenPageState extends State<AbsenPage> {
       }
     } catch (e) {
       if (mounted) {
-        Navigator.of(context).pop(); // Tutup loading dialog
+        Navigator.of(context).pop();
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('Gagal mencatat absen: $e'),
@@ -610,8 +604,8 @@ class _AbsenPageState extends State<AbsenPage> {
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(16),
           ),
-          title: Row(
-            children: const [
+          title: const Row(
+            children: [
               Icon(Icons.error_outline_rounded, color: Colors.red),
               SizedBox(width: 8),
               Text('Di Luar Jangkauan', style: TextStyle(fontSize: 18)),
@@ -675,7 +669,6 @@ class _AbsenPageState extends State<AbsenPage> {
                   textAlign: TextAlign.center,
                 ),
                 const SizedBox(height: 16),
-
                 _buildTipeAbsenTile(
                   icon: Icons.login_rounded,
                   color: Colors.green,
@@ -687,7 +680,6 @@ class _AbsenPageState extends State<AbsenPage> {
                   },
                 ),
                 const SizedBox(height: 10),
-
                 _buildTipeAbsenTile(
                   icon: Icons.coffee_rounded,
                   color: Colors.amber.shade700,
@@ -699,7 +691,6 @@ class _AbsenPageState extends State<AbsenPage> {
                   },
                 ),
                 const SizedBox(height: 10),
-
                 _buildTipeAbsenTile(
                   icon: Icons.directions_walk_rounded,
                   color: Colors.blue.shade700,
@@ -711,7 +702,6 @@ class _AbsenPageState extends State<AbsenPage> {
                   },
                 ),
                 const SizedBox(height: 10),
-
                 _buildTipeAbsenTile(
                   icon: Icons.logout_rounded,
                   color: Colors.red.shade700,
@@ -788,744 +778,853 @@ class _AbsenPageState extends State<AbsenPage> {
     );
   }
 
+  /// Dekorasi background lengkung & geometris tema Zieda Bakery
+  Widget _buildBackgroundShapes(Size size) {
+    const Color primaryBg = Color(0xFF500808);
+    const Color secondaryBg = Color(0xFF8A2323);
+    const Color accentWarm = Color(0xFFD4A373);
+
+    return Stack(
+      children: [
+        // Lengkungan besar di atas
+        Positioned(
+          top: -size.height * 0.08,
+          left: -size.width * 0.2,
+          child: Container(
+            width: size.width * 1.4,
+            height: size.height * 0.32,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              gradient: LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: [
+                  primaryBg.withValues(alpha: 0.08),
+                  secondaryBg.withValues(alpha: 0.02),
+                ],
+              ),
+            ),
+          ),
+        ),
+
+        // Lingkaran aksen hangat di kanan atas
+        Positioned(
+          top: size.height * 0.05,
+          right: -30,
+          child: Container(
+            width: 120,
+            height: 120,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              color: accentWarm.withValues(alpha: 0.10),
+            ),
+          ),
+        ),
+
+        // Persegi membulat miring di kiri bawah
+        Positioned(
+          bottom: -40,
+          left: -30,
+          child: Transform.rotate(
+            angle: 0.35,
+            child: Container(
+              width: 160,
+              height: 160,
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(32),
+                color: primaryBg.withValues(alpha: 0.03),
+              ),
+            ),
+          ),
+        ),
+
+        // Lingkaran kecil di kanan bawah
+        Positioned(
+          bottom: size.height * 0.15,
+          right: -20,
+          child: Container(
+            width: 80,
+            height: 80,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              color: secondaryBg.withValues(alpha: 0.04),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final String jamMenit =
         '${_formatDigit(_currentTime.hour)}:${_formatDigit(_currentTime.minute)}';
     final String tanggalFormatted = _formatTanggal(_currentTime);
+    final Size screenSize = MediaQuery.of(context).size;
 
     return Scaffold(
-      backgroundColor: Colors.white,
-      body: SafeArea(
-        child: Column(
-          children: [
-            _buildAppHeader(),
-            Expanded(
-              child: IndexedStack(
-                index: _currentNavIndex,
-                children: [
-                  RefreshIndicator(
-                    onRefresh: () async {
-                      await _loadUserAndKantor();
-                      await _loadRiwayatHariIni();
-                    },
-                    color: const Color(0xFF4A1010),
-                    child: SingleChildScrollView(
-                      physics: const AlwaysScrollableScrollPhysics(),
-                      padding: const EdgeInsets.fromLTRB(24.0, 0.0, 24.0, 16.0),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.center,
-                        children: [
-                          // ==========================================
-                          // 1. KARTU JAM & TANGGAL
-                          // ==========================================
-                          Container(
-                            width: double.infinity,
-                            padding: const EdgeInsets.symmetric(
-                              vertical: 22.0,
-                              horizontal: 16.0,
-                            ),
-                            decoration: BoxDecoration(
-                              color: Colors.white,
-                              borderRadius: BorderRadius.circular(28),
-                              border: Border.all(
-                                color: const Color(0xFFE8E8E8),
-                                width: 1.5,
-                              ),
-                              boxShadow: [
-                                BoxShadow(
-                                  color: Colors.black.withValues(alpha: 0.05),
-                                  blurRadius: 16,
-                                  offset: const Offset(0, 6),
+      backgroundColor: const Color(0xfffaf9f8),
+      body: Stack(
+        children: [
+          // LAYER BACKGROUND: Lengkungan & elemen dekoratif
+          _buildBackgroundShapes(screenSize),
+
+          // LAYER UTAMA
+          SafeArea(
+            child: Column(
+              children: [
+                _buildAppHeader(),
+                Expanded(
+                  child: IndexedStack(
+                    index: _currentNavIndex,
+                    children: [
+                      RefreshIndicator(
+                        onRefresh: () async {
+                          await _loadUserAndKantor();
+                          await _loadRiwayatHariIni();
+                        },
+                        color: const Color(0xFF4A1010),
+                        child: SingleChildScrollView(
+                          physics: const AlwaysScrollableScrollPhysics(),
+                          padding:
+                          const EdgeInsets.fromLTRB(24.0, 0.0, 24.0, 16.0),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.center,
+                            children: [
+                              // 1. KARTU JAM & TANGGAL
+                              Container(
+                                width: double.infinity,
+                                padding: const EdgeInsets.symmetric(
+                                  vertical: 22.0,
+                                  horizontal: 16.0,
                                 ),
-                              ],
-                            ),
-                            child: Column(
-                              children: [
-                                Row(
-                                  mainAxisAlignment: MainAxisAlignment.center,
-                                  crossAxisAlignment:
-                                      CrossAxisAlignment.baseline,
-                                  textBaseline: TextBaseline.alphabetic,
-                                  children: [
-                                    Text(
-                                      jamMenit,
-                                      style: const TextStyle(
-                                        fontSize: 46,
-                                        fontWeight: FontWeight.w900,
-                                        color: Color(0xFF230505),
-                                        letterSpacing: -1,
-                                      ),
+                                decoration: BoxDecoration(
+                                  color: Colors.white,
+                                  borderRadius: BorderRadius.circular(28),
+                                  border: Border.all(
+                                    color: const Color(0xFFE8E8E8),
+                                    width: 1.5,
+                                  ),
+                                  boxShadow: [
+                                    BoxShadow(
+                                      color:
+                                      Colors.black.withValues(alpha: 0.05),
+                                      blurRadius: 16,
+                                      offset: const Offset(0, 6),
                                     ),
-                                    const SizedBox(width: 8),
-                                    const Text(
-                                      'WIB',
-                                      style: TextStyle(
-                                        fontSize: 18,
-                                        fontWeight: FontWeight.w700,
-                                        color: Color(0xFF4A1010),
+                                  ],
+                                ),
+                                child: Column(
+                                  children: [
+                                    Row(
+                                      mainAxisAlignment:
+                                      MainAxisAlignment.center,
+                                      crossAxisAlignment:
+                                      CrossAxisAlignment.baseline,
+                                      textBaseline: TextBaseline.alphabetic,
+                                      children: [
+                                        Text(
+                                          jamMenit,
+                                          style: const TextStyle(
+                                            fontSize: 46,
+                                            fontWeight: FontWeight.w900,
+                                            color: Color(0xFF230505),
+                                            letterSpacing: -1,
+                                          ),
+                                        ),
+                                        const SizedBox(width: 8),
+                                        const Text(
+                                          'WIB',
+                                          style: TextStyle(
+                                            fontSize: 18,
+                                            fontWeight: FontWeight.w700,
+                                            color: Color(0xFF4A1010),
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                    const SizedBox(height: 4),
+                                    Text(
+                                      tanggalFormatted,
+                                      style: const TextStyle(
+                                        fontSize: 12,
+                                        color: Color(0xFF5A3B3B),
+                                        fontWeight: FontWeight.w500,
                                       ),
                                     ),
                                   ],
                                 ),
-                                const SizedBox(height: 4),
-                                Text(
-                                  tanggalFormatted,
-                                  style: const TextStyle(
-                                    fontSize: 12,
-                                    color: Color(0xFF5A3B3B),
-                                    fontWeight: FontWeight.w500,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-
-                          const SizedBox(height: 18),
-
-                          // ==========================================
-                          // 3. KOTAK PETA INTERAKTIF
-                          // ==========================================
-                          Container(
-                            height: 320,
-                            width: double.infinity,
-                            decoration: BoxDecoration(
-                              borderRadius: BorderRadius.circular(28),
-                              border: Border.all(
-                                color: const Color(0xFF401010),
-                                width: 2,
                               ),
-                              boxShadow: [
-                                BoxShadow(
-                                  color: Colors.black.withValues(alpha: 0.1),
-                                  blurRadius: 16,
-                                  offset: const Offset(0, 6),
+
+                              const SizedBox(height: 18),
+
+                              // 3. KOTAK PETA INTERAKTIF
+                              Container(
+                                height: 320,
+                                width: double.infinity,
+                                decoration: BoxDecoration(
+                                  borderRadius: BorderRadius.circular(28),
+                                  border: Border.all(
+                                    color: const Color(0xFF401010),
+                                    width: 2,
+                                  ),
+                                  boxShadow: [
+                                    BoxShadow(
+                                      color:
+                                      Colors.black.withValues(alpha: 0.1),
+                                      blurRadius: 16,
+                                      offset: const Offset(0, 6),
+                                    ),
+                                  ],
                                 ),
-                              ],
-                            ),
-                            clipBehavior: Clip.antiAlias,
-                            child: Stack(
-                              children: [
-                                _isLoadingKantor
-                                    ? const Center(
-                                        child: CircularProgressIndicator(
-                                          color: Color(0xFF4A1010),
+                                clipBehavior: Clip.antiAlias,
+                                child: Stack(
+                                  children: [
+                                    _isLoadingKantor
+                                        ? const Center(
+                                      child: CircularProgressIndicator(
+                                        color: Color(0xFF4A1010),
+                                      ),
+                                    )
+                                        : FlutterMap(
+                                      mapController: _mapController,
+                                      options: MapOptions(
+                                        initialCenter: LatLng(
+                                          _latKantor,
+                                          _lonKantor,
                                         ),
-                                      )
-                                    : FlutterMap(
-                                        mapController: _mapController,
-                                        options: MapOptions(
-                                          initialCenter: LatLng(
-                                            _latKantor,
-                                            _lonKantor,
-                                          ),
-                                          initialZoom: 16.5,
-                                          minZoom: 12,
-                                          maxZoom: 19,
+                                        initialZoom: 16.5,
+                                        minZoom: 12,
+                                        maxZoom: 19,
+                                      ),
+                                      children: [
+                                        TileLayer(
+                                          urlTemplate:
+                                          'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+                                          userAgentPackageName:
+                                          'com.example.zabsen',
                                         ),
-                                        children: [
-                                          TileLayer(
-                                            urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
-                                            userAgentPackageName:
-                                                'com.example.zabsen',
-                                          ),
-                                          CircleLayer(
-                                            circles: [
-                                              CircleMarker(
-                                                point: LatLng(
-                                                  _latKantor,
-                                                  _lonKantor,
-                                                ),
-                                                radius: _radiusMaksimal
-                                                    .toDouble(),
-                                                useRadiusInMeter: true,
-                                                color: Colors.green.withValues(
-                                                  alpha: 0.22,
-                                                ),
-                                                borderColor: const Color(
-                                                  0xFF2E7D32,
-                                                ),
-                                                borderStrokeWidth: 2,
+                                        CircleLayer(
+                                          circles: [
+                                            CircleMarker(
+                                              point: LatLng(
+                                                _latKantor,
+                                                _lonKantor,
                                               ),
-                                              for (final k in _listKantor)
-                                                if (k['nama'] != _namaKantor &&
-                                                    k['lat'] != null &&
-                                                    k['lng'] != null)
-                                                  CircleMarker(
-                                                    point: LatLng(
-                                                      _toDouble(k['lat']),
-                                                      _toDouble(k['lng']),
-                                                    ),
-                                                    radius: _toDouble(
-                                                      k['radius'],
-                                                      100.0,
-                                                    ),
-                                                    useRadiusInMeter: true,
-                                                    color: Colors.blue
-                                                        .withValues(
-                                                          alpha: 0.15,
-                                                        ),
-                                                    borderColor: const Color(
-                                                      0xFF1976D2,
-                                                    ),
-                                                    borderStrokeWidth: 1.5,
+                                              radius: _radiusMaksimal
+                                                  .toDouble(),
+                                              useRadiusInMeter: true,
+                                              color: Colors.green
+                                                  .withValues(alpha: 0.22),
+                                              borderColor: const Color(
+                                                0xFF2E7D32,
+                                              ),
+                                              borderStrokeWidth: 2,
+                                            ),
+                                            for (final k in _listKantor)
+                                              if (k['nama'] !=
+                                                  _namaKantor &&
+                                                  k['lat'] != null &&
+                                                  k['lng'] != null)
+                                                CircleMarker(
+                                                  point: LatLng(
+                                                    _toDouble(k['lat']),
+                                                    _toDouble(k['lng']),
                                                   ),
-                                            ],
-                                          ),
-                                          MarkerLayer(
-                                            markers: [
+                                                  radius: _toDouble(
+                                                    k['radius'],
+                                                    100.0,
+                                                  ),
+                                                  useRadiusInMeter: true,
+                                                  color: Colors.blue
+                                                      .withValues(
+                                                    alpha: 0.15,
+                                                  ),
+                                                  borderColor: const Color(
+                                                    0xFF1976D2,
+                                                  ),
+                                                  borderStrokeWidth: 1.5,
+                                                ),
+                                          ],
+                                        ),
+                                        MarkerLayer(
+                                          markers: [
+                                            Marker(
+                                              point: LatLng(
+                                                _latKantor,
+                                                _lonKantor,
+                                              ),
+                                              width: 100,
+                                              height: 55,
+                                              child: Column(
+                                                children: [
+                                                  Container(
+                                                    padding:
+                                                    const EdgeInsets
+                                                        .symmetric(
+                                                      horizontal: 6,
+                                                      vertical: 2,
+                                                    ),
+                                                    decoration:
+                                                    BoxDecoration(
+                                                      color: Colors.white,
+                                                      borderRadius:
+                                                      BorderRadius
+                                                          .circular(
+                                                        4,
+                                                      ),
+                                                      boxShadow: const [
+                                                        BoxShadow(
+                                                          color: Colors
+                                                              .black26,
+                                                          blurRadius: 4,
+                                                        ),
+                                                      ],
+                                                    ),
+                                                    child: Text(
+                                                      _namaKantor,
+                                                      style:
+                                                      const TextStyle(
+                                                        fontSize: 9,
+                                                        fontWeight:
+                                                        FontWeight
+                                                            .bold,
+                                                        color: Color(
+                                                          0xFF4A1010,
+                                                        ),
+                                                      ),
+                                                      maxLines: 1,
+                                                      overflow:
+                                                      TextOverflow
+                                                          .ellipsis,
+                                                    ),
+                                                  ),
+                                                  const Icon(
+                                                    Icons
+                                                        .storefront_rounded,
+                                                    color: Colors.green,
+                                                    size: 26,
+                                                  ),
+                                                ],
+                                              ),
+                                            ),
+                                            if (_userPosition != null)
                                               Marker(
                                                 point: LatLng(
-                                                  _latKantor,
-                                                  _lonKantor,
+                                                  _userPosition!.latitude,
+                                                  _userPosition!
+                                                      .longitude,
                                                 ),
-                                                width: 100,
+                                                width: 80,
                                                 height: 55,
                                                 child: Column(
                                                   children: [
                                                     Container(
                                                       padding:
-                                                          const EdgeInsets.symmetric(
-                                                            horizontal: 6,
-                                                            vertical: 2,
-                                                          ),
-                                                      decoration: BoxDecoration(
-                                                        color: Colors.white,
+                                                      const EdgeInsets
+                                                          .symmetric(
+                                                        horizontal: 6,
+                                                        vertical: 2,
+                                                      ),
+                                                      decoration:
+                                                      BoxDecoration(
+                                                        color: Colors.blue
+                                                            .shade700,
                                                         borderRadius:
-                                                            BorderRadius.circular(
-                                                              4,
-                                                            ),
+                                                        BorderRadius
+                                                            .circular(
+                                                          4,
+                                                        ),
                                                         boxShadow: const [
                                                           BoxShadow(
-                                                            color:
-                                                                Colors.black26,
+                                                            color: Colors
+                                                                .black26,
                                                             blurRadius: 4,
                                                           ),
                                                         ],
                                                       ),
-                                                      child: Text(
-                                                        _namaKantor,
-                                                        style: const TextStyle(
+                                                      child: const Text(
+                                                        'Posisi Anda',
+                                                        style: TextStyle(
                                                           fontSize: 9,
                                                           fontWeight:
-                                                              FontWeight.bold,
-                                                          color: Color(
-                                                            0xFF4A1010,
-                                                          ),
+                                                          FontWeight
+                                                              .bold,
+                                                          color: Colors
+                                                              .white,
+                                                        ),
+                                                      ),
+                                                    ),
+                                                    const Icon(
+                                                      Icons
+                                                          .person_pin_circle_rounded,
+                                                      color: Colors
+                                                          .blueAccent,
+                                                      size: 28,
+                                                    ),
+                                                  ],
+                                                ),
+                                              ),
+                                          ],
+                                        ),
+                                      ],
+                                    ),
+
+                                    // Tombol Cari GPS
+                                    Positioned(
+                                      top: 12,
+                                      right: 12,
+                                      child: Material(
+                                        color: Colors.white,
+                                        elevation: 4,
+                                        shape: const CircleBorder(),
+                                        child: InkWell(
+                                          customBorder: const CircleBorder(),
+                                          onTap: _getCurrentLocation,
+                                          child: Padding(
+                                            padding: const EdgeInsets.all(10.0),
+                                            child: _isLoadingLocation
+                                                ? const SizedBox(
+                                              width: 20,
+                                              height: 20,
+                                              child:
+                                              CircularProgressIndicator(
+                                                strokeWidth: 2.5,
+                                                color: Color(0xFF4A1010),
+                                              ),
+                                            )
+                                                : const Icon(
+                                              Icons.my_location_rounded,
+                                              color: Color(0xFF4A1010),
+                                              size: 20,
+                                            ),
+                                          ),
+                                        ),
+                                      ),
+                                    ),
+
+                                    // Banner Status Jarak
+                                    Positioned(
+                                      bottom: 12,
+                                      left: 12,
+                                      right: 12,
+                                      child: Container(
+                                        padding: const EdgeInsets.symmetric(
+                                          horizontal: 14,
+                                          vertical: 8,
+                                        ),
+                                        decoration: BoxDecoration(
+                                          color: Colors.white.withValues(
+                                            alpha: 0.94,
+                                          ),
+                                          borderRadius:
+                                          BorderRadius.circular(20),
+                                          boxShadow: const [
+                                            BoxShadow(
+                                              color: Colors.black26,
+                                              blurRadius: 8,
+                                              offset: Offset(0, 2),
+                                            ),
+                                          ],
+                                        ),
+                                        child: Row(
+                                          mainAxisAlignment:
+                                          MainAxisAlignment.center,
+                                          children: [
+                                            Icon(
+                                              _userPosition == null
+                                                  ? Icons.gps_not_fixed_rounded
+                                                  : (_isInsideRadius
+                                                  ? Icons
+                                                  .check_circle_rounded
+                                                  : Icons.cancel_rounded),
+                                              color: _userPosition == null
+                                                  ? Colors.grey
+                                                  : (_isInsideRadius
+                                                  ? Colors.green
+                                                  : Colors.red),
+                                              size: 18,
+                                            ),
+                                            const SizedBox(width: 8),
+                                            Flexible(
+                                              child: Text(
+                                                _userPosition == null
+                                                    ? 'Mencari lokasi GPS Anda...'
+                                                    : 'Jarak: $_distanceToOffice m dari $_namaKantor (${_isInsideRadius ? 'Dalam Radius' : 'Di Luar Radius'})',
+                                                style: TextStyle(
+                                                  fontSize: 11,
+                                                  fontWeight: FontWeight.bold,
+                                                  color: _userPosition == null
+                                                      ? Colors.black87
+                                                      : (_isInsideRadius
+                                                      ? Colors
+                                                      .green.shade800
+                                                      : Colors.red.shade800),
+                                                ),
+                                                maxLines: 1,
+                                                overflow: TextOverflow.ellipsis,
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+
+                              const SizedBox(height: 20),
+
+                              // 4. TOMBOL ABSEN
+                              GestureDetector(
+                                onTap: _handleAbsenClick,
+                                child: Container(
+                                  height: 58,
+                                  width: double.infinity,
+                                  decoration: BoxDecoration(
+                                    borderRadius: BorderRadius.circular(40),
+                                    gradient: const LinearGradient(
+                                      begin: Alignment.topCenter,
+                                      end: Alignment.bottomCenter,
+                                      colors: [
+                                        Color(0xFF3B0B0B),
+                                        Color(0xFF1E0404),
+                                      ],
+                                    ),
+                                    boxShadow: [
+                                      BoxShadow(
+                                        color: const Color(0xFF2D0707)
+                                            .withValues(alpha: 0.4),
+                                        blurRadius: 14,
+                                        offset: const Offset(0, 6),
+                                      ),
+                                    ],
+                                  ),
+                                  child: Row(
+                                    mainAxisAlignment: MainAxisAlignment.center,
+                                    children: [
+                                      Container(
+                                        width: 30,
+                                        height: 30,
+                                        decoration: BoxDecoration(
+                                          shape: BoxShape.circle,
+                                          border: Border.all(
+                                            color: Colors.white,
+                                            width: 2.2,
+                                          ),
+                                        ),
+                                        child: Center(
+                                          child: Container(
+                                            width: 12,
+                                            height: 12,
+                                            decoration: const BoxDecoration(
+                                              shape: BoxShape.circle,
+                                              color: Colors.white,
+                                            ),
+                                          ),
+                                        ),
+                                      ),
+                                      const SizedBox(width: 12),
+                                      const Text(
+                                        'Absen',
+                                        style: TextStyle(
+                                          fontSize: 18,
+                                          fontWeight: FontWeight.bold,
+                                          color: Colors.white,
+                                          letterSpacing: 0.5,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ),
+
+                              const SizedBox(height: 22),
+
+                              // 5. RIWAYAT ABSEN HARI INI
+                              Container(
+                                width: double.infinity,
+                                padding: const EdgeInsets.all(20.0),
+                                decoration: BoxDecoration(
+                                  color: Colors.white,
+                                  borderRadius: BorderRadius.circular(28),
+                                  border: Border.all(
+                                    color: const Color(0xFFE8E8E8),
+                                    width: 1.5,
+                                  ),
+                                  boxShadow: [
+                                    BoxShadow(
+                                      color:
+                                      Colors.black.withValues(alpha: 0.05),
+                                      blurRadius: 16,
+                                      offset: const Offset(0, 6),
+                                    ),
+                                  ],
+                                ),
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Row(
+                                      mainAxisAlignment:
+                                      MainAxisAlignment.spaceBetween,
+                                      children: [
+                                        Row(
+                                          children: [
+                                            Container(
+                                              padding: const EdgeInsets.all(8),
+                                              decoration: BoxDecoration(
+                                                color: const Color(0xFF500808)
+                                                    .withValues(alpha: 0.08),
+                                                borderRadius:
+                                                BorderRadius.circular(10),
+                                              ),
+                                              child: const Icon(
+                                                Icons.history_rounded,
+                                                color: Color(0xFF500808),
+                                                size: 20,
+                                              ),
+                                            ),
+                                            const SizedBox(width: 10),
+                                            const Text(
+                                              'Riwayat Absen Hari Ini',
+                                              style: TextStyle(
+                                                fontSize: 16,
+                                                fontWeight: FontWeight.bold,
+                                                color: Color(0xFF1E1E1E),
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                        IconButton(
+                                          onPressed: _loadRiwayatHariIni,
+                                          icon: const Icon(
+                                            Icons.refresh_rounded,
+                                            size: 20,
+                                            color: Color(0xFF500808),
+                                          ),
+                                          tooltip: 'Segarkan Riwayat',
+                                          padding: EdgeInsets.zero,
+                                          constraints: const BoxConstraints(),
+                                        ),
+                                      ],
+                                    ),
+                                    const SizedBox(height: 16),
+                                    if (_isLoadingRiwayat)
+                                      const Center(
+                                        child: Padding(
+                                          padding: EdgeInsets.symmetric(
+                                            vertical: 24.0,
+                                          ),
+                                          child: CircularProgressIndicator(
+                                            color: Color(0xFF500808),
+                                            strokeWidth: 2.5,
+                                          ),
+                                        ),
+                                      )
+                                    else if (_riwayatHariIni.isEmpty)
+                                      Center(
+                                        child: Padding(
+                                          padding: const EdgeInsets.symmetric(
+                                            vertical: 20.0,
+                                          ),
+                                          child: Column(
+                                            children: const [
+                                              Icon(
+                                                Icons.event_available_outlined,
+                                                size: 40,
+                                                color: Color(0xFFB0B0B0),
+                                              ),
+                                              SizedBox(height: 8),
+                                              Text(
+                                                'Belum ada riwayat absensi hari ini',
+                                                style: TextStyle(
+                                                  fontSize: 13,
+                                                  color: Color(0xFF757575),
+                                                  fontWeight: FontWeight.w500,
+                                                ),
+                                              ),
+                                            ],
+                                          ),
+                                        ),
+                                      )
+                                    else
+                                      ListView.separated(
+                                        shrinkWrap: true,
+                                        physics:
+                                        const NeverScrollableScrollPhysics(),
+                                        itemCount: _riwayatHariIni.length,
+                                        separatorBuilder: (_, _) =>
+                                        const Divider(
+                                          height: 20,
+                                          color: Color(0xFFF2F2F2),
+                                        ),
+                                        itemBuilder: (context, index) {
+                                          final item = _riwayatHariIni[index];
+                                          final tipe = item['tipe_absen']
+                                              ?.toString() ??
+                                              'Absen';
+                                          final waktu =
+                                              item['waktu']?.toString() ?? '-';
+                                          final status = item['status']
+                                              ?.toString() ??
+                                              'Hadir';
+                                          final lokasi = item['lokasi']
+                                              ?.toString() ??
+                                              '';
+
+                                          final isPulang = tipe
+                                              .toLowerCase()
+                                              .contains('pulang') ||
+                                              tipe
+                                                  .toLowerCase()
+                                                  .contains('checkout');
+                                          final isIstirahat = tipe
+                                              .toLowerCase()
+                                              .contains('istirahat');
+
+                                          Color iconBg = Colors.green.shade50;
+                                          Color iconColor =
+                                              Colors.green.shade700;
+                                          IconData iconData =
+                                              Icons.login_rounded;
+
+                                          if (isPulang) {
+                                            iconBg = Colors.red.shade50;
+                                            iconColor = Colors.red.shade700;
+                                            iconData = Icons.logout_rounded;
+                                          } else if (isIstirahat) {
+                                            iconBg = Colors.amber.shade50;
+                                            iconColor = Colors.amber.shade800;
+                                            iconData = Icons.coffee_rounded;
+                                          }
+
+                                          return Row(
+                                            children: [
+                                              Container(
+                                                width: 40,
+                                                height: 40,
+                                                decoration: BoxDecoration(
+                                                  color: iconBg,
+                                                  shape: BoxShape.circle,
+                                                ),
+                                                child: Icon(
+                                                  iconData,
+                                                  color: iconColor,
+                                                  size: 20,
+                                                ),
+                                              ),
+                                              const SizedBox(width: 12),
+                                              Expanded(
+                                                child: Column(
+                                                  crossAxisAlignment:
+                                                  CrossAxisAlignment.start,
+                                                  children: [
+                                                    Text(
+                                                      tipe,
+                                                      style: const TextStyle(
+                                                        fontSize: 14,
+                                                        fontWeight:
+                                                        FontWeight.w700,
+                                                        color:
+                                                        Color(0xFF1E1E1E),
+                                                      ),
+                                                    ),
+                                                    if (lokasi.isNotEmpty)
+                                                      Text(
+                                                        lokasi,
+                                                        style: const TextStyle(
+                                                          fontSize: 11,
+                                                          color:
+                                                          Color(0xFF888888),
                                                         ),
                                                         maxLines: 1,
                                                         overflow: TextOverflow
                                                             .ellipsis,
                                                       ),
-                                                    ),
-                                                    const Icon(
-                                                      Icons.storefront_rounded,
-                                                      color: Colors.green,
-                                                      size: 26,
-                                                    ),
                                                   ],
                                                 ),
                                               ),
-                                              if (_userPosition != null)
-                                                Marker(
-                                                  point: LatLng(
-                                                    _userPosition!.latitude,
-                                                    _userPosition!.longitude,
-                                                  ),
-                                                  width: 80,
-                                                  height: 55,
-                                                  child: Column(
-                                                    children: [
-                                                      Container(
-                                                        padding:
-                                                            const EdgeInsets.symmetric(
-                                                              horizontal: 6,
-                                                              vertical: 2,
-                                                            ),
-                                                        decoration: BoxDecoration(
-                                                          color: Colors
-                                                              .blue
-                                                              .shade700,
-                                                          borderRadius:
-                                                              BorderRadius.circular(
-                                                                4,
-                                                              ),
-                                                          boxShadow: const [
-                                                            BoxShadow(
-                                                              color: Colors
-                                                                  .black26,
-                                                              blurRadius: 4,
-                                                            ),
-                                                          ],
-                                                        ),
-                                                        child: const Text(
-                                                          'Posisi Anda',
-                                                          style: TextStyle(
-                                                            fontSize: 9,
-                                                            fontWeight:
-                                                                FontWeight.bold,
-                                                            color: Colors.white,
-                                                          ),
-                                                        ),
-                                                      ),
-                                                      const Icon(
-                                                        Icons
-                                                            .person_pin_circle_rounded,
-                                                        color:
-                                                            Colors.blueAccent,
-                                                        size: 28,
-                                                      ),
-                                                    ],
-                                                  ),
-                                                ),
-                                            ],
-                                          ),
-                                        ],
-                                      ),
-
-                                // Tombol Cari GPS
-                                Positioned(
-                                  top: 12,
-                                  right: 12,
-                                  child: Material(
-                                    color: Colors.white,
-                                    elevation: 4,
-                                    shape: const CircleBorder(),
-                                    child: InkWell(
-                                      customBorder: const CircleBorder(),
-                                      onTap: _getCurrentLocation,
-                                      child: Padding(
-                                        padding: const EdgeInsets.all(10.0),
-                                        child: _isLoadingLocation
-                                            ? const SizedBox(
-                                                width: 20,
-                                                height: 20,
-                                                child:
-                                                    CircularProgressIndicator(
-                                                      strokeWidth: 2.5,
-                                                      color: Color(0xFF4A1010),
-                                                    ),
-                                              )
-                                            : const Icon(
-                                                Icons.my_location_rounded,
-                                                color: Color(0xFF4A1010),
-                                                size: 20,
-                                              ),
-                                      ),
-                                    ),
-                                  ),
-                                ),
-
-                                // Banner Status Jarak
-                                Positioned(
-                                  bottom: 12,
-                                  left: 12,
-                                  right: 12,
-                                  child: Container(
-                                    padding: const EdgeInsets.symmetric(
-                                      horizontal: 14,
-                                      vertical: 8,
-                                    ),
-                                    decoration: BoxDecoration(
-                                      color: Colors.white.withValues(
-                                        alpha: 0.94,
-                                      ),
-                                      borderRadius: BorderRadius.circular(20),
-                                      boxShadow: const [
-                                        BoxShadow(
-                                          color: Colors.black26,
-                                          blurRadius: 8,
-                                          offset: Offset(0, 2),
-                                        ),
-                                      ],
-                                    ),
-                                    child: Row(
-                                      mainAxisAlignment:
-                                          MainAxisAlignment.center,
-                                      children: [
-                                        Icon(
-                                          _userPosition == null
-                                              ? Icons.gps_not_fixed_rounded
-                                              : (_isInsideRadius
-                                                    ? Icons.check_circle_rounded
-                                                    : Icons.cancel_rounded),
-                                          color: _userPosition == null
-                                              ? Colors.grey
-                                              : (_isInsideRadius
-                                                    ? Colors.green
-                                                    : Colors.red),
-                                          size: 18,
-                                        ),
-                                        const SizedBox(width: 8),
-                                        Flexible(
-                                          child: Text(
-                                            _userPosition == null
-                                                ? 'Mencari lokasi GPS Anda...'
-                                                : 'Jarak: $_distanceToOffice m dari $_namaKantor (${_isInsideRadius ? 'Dalam Radius' : 'Di Luar Radius'})',
-                                            style: TextStyle(
-                                              fontSize: 11,
-                                              fontWeight: FontWeight.bold,
-                                              color: _userPosition == null
-                                                  ? Colors.black87
-                                                  : (_isInsideRadius
-                                                        ? Colors.green.shade800
-                                                        : Colors.red.shade800),
-                                            ),
-                                            maxLines: 1,
-                                            overflow: TextOverflow.ellipsis,
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-
-                          const SizedBox(height: 20),
-
-                          // ==========================================
-                          // 4. TOMBOL ABSEN
-                          // ==========================================
-                          GestureDetector(
-                            onTap: _handleAbsenClick,
-                            child: Container(
-                              height: 58,
-                              width: double.infinity,
-                              decoration: BoxDecoration(
-                                borderRadius: BorderRadius.circular(40),
-                                gradient: const LinearGradient(
-                                  begin: Alignment.topCenter,
-                                  end: Alignment.bottomCenter,
-                                  colors: [
-                                    Color(0xFF3B0B0B),
-                                    Color(0xFF1E0404),
-                                  ],
-                                ),
-                                boxShadow: [
-                                  BoxShadow(
-                                    color: const Color(0xFF2D0707)
-                                        .withValues(alpha: 0.4),
-                                    blurRadius: 14,
-                                    offset: const Offset(0, 6),
-                                  ),
-                                ],
-                              ),
-                              child: Row(
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                children: [
-                                  Container(
-                                    width: 30,
-                                    height: 30,
-                                    decoration: BoxDecoration(
-                                      shape: BoxShape.circle,
-                                      border: Border.all(
-                                        color: Colors.white,
-                                        width: 2.2,
-                                      ),
-                                    ),
-                                    child: Center(
-                                      child: Container(
-                                        width: 12,
-                                        height: 12,
-                                        decoration: const BoxDecoration(
-                                          shape: BoxShape.circle,
-                                          color: Colors.white,
-                                        ),
-                                      ),
-                                    ),
-                                  ),
-                                  const SizedBox(width: 12),
-                                  const Text(
-                                    'Absen',
-                                    style: TextStyle(
-                                      fontSize: 18,
-                                      fontWeight: FontWeight.bold,
-                                      color: Colors.white,
-                                      letterSpacing: 0.5,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ),
-
-                          const SizedBox(height: 22),
-
-                          // ==========================================
-                          // 5. RIWAYAT ABSEN HARI INI
-                          // ==========================================
-                          Container(
-                            width: double.infinity,
-                            padding: const EdgeInsets.all(20.0),
-                            decoration: BoxDecoration(
-                              color: Colors.white,
-                              borderRadius: BorderRadius.circular(28),
-                              border: Border.all(
-                                color: const Color(0xFFE8E8E8),
-                                width: 1.5,
-                              ),
-                              boxShadow: [
-                                BoxShadow(
-                                  color: Colors.black.withValues(alpha: 0.05),
-                                  blurRadius: 16,
-                                  offset: const Offset(0, 6),
-                                ),
-                              ],
-                            ),
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                // Header Card Riwayat
-                                Row(
-                                  mainAxisAlignment:
-                                      MainAxisAlignment.spaceBetween,
-                                  children: [
-                                    Row(
-                                      children: [
-                                        Container(
-                                          padding: const EdgeInsets.all(8),
-                                          decoration: BoxDecoration(
-                                            color: const Color(0xFF500808)
-                                                .withValues(alpha: 0.08),
-                                            borderRadius: BorderRadius.circular(
-                                              10,
-                                            ),
-                                          ),
-                                          child: const Icon(
-                                            Icons.history_rounded,
-                                            color: Color(0xFF500808),
-                                            size: 20,
-                                          ),
-                                        ),
-                                        const SizedBox(width: 10),
-                                        const Text(
-                                          'Riwayat Absen Hari Ini',
-                                          style: TextStyle(
-                                            fontSize: 16,
-                                            fontWeight: FontWeight.bold,
-                                            color: Color(0xFF1E1E1E),
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                    IconButton(
-                                      onPressed: _loadRiwayatHariIni,
-                                      icon: const Icon(
-                                        Icons.refresh_rounded,
-                                        size: 20,
-                                        color: Color(0xFF500808),
-                                      ),
-                                      tooltip: 'Segarkan Riwayat',
-                                      padding: EdgeInsets.zero,
-                                      constraints: const BoxConstraints(),
-                                    ),
-                                  ],
-                                ),
-                                const SizedBox(height: 16),
-
-                                // Konten Tabel / List
-                                if (_isLoadingRiwayat)
-                                  const Center(
-                                    child: Padding(
-                                      padding: EdgeInsets.symmetric(
-                                        vertical: 24.0,
-                                      ),
-                                      child: CircularProgressIndicator(
-                                        color: Color(0xFF500808),
-                                        strokeWidth: 2.5,
-                                      ),
-                                    ),
-                                  )
-                                else if (_riwayatHariIni.isEmpty)
-                                  Center(
-                                    child: Padding(
-                                      padding: const EdgeInsets.symmetric(
-                                        vertical: 20.0,
-                                      ),
-                                      child: Column(
-                                        children: const [
-                                          Icon(
-                                            Icons.event_available_outlined,
-                                            size: 40,
-                                            color: Color(0xFFB0B0B0),
-                                          ),
-                                          SizedBox(height: 8),
-                                          Text(
-                                            'Belum ada riwayat absensi hari ini',
-                                            style: TextStyle(
-                                              fontSize: 13,
-                                              color: Color(0xFF757575),
-                                              fontWeight: FontWeight.w500,
-                                            ),
-                                          ),
-                                        ],
-                                      ),
-                                    ),
-                                  )
-                                else
-                                  ListView.separated(
-                                    shrinkWrap: true,
-                                    physics:
-                                        const NeverScrollableScrollPhysics(),
-                                    itemCount: _riwayatHariIni.length,
-                                    separatorBuilder: (_, _) => const Divider(
-                                      height: 20,
-                                      color: Color(0xFFF2F2F2),
-                                    ),
-                                    itemBuilder: (context, index) {
-                                      final item = _riwayatHariIni[index];
-                                      final tipe =
-                                          item['tipe_absen']?.toString() ??
-                                          'Absen';
-                                      final waktu =
-                                          item['waktu']?.toString() ?? '-';
-                                      final status =
-                                          item['status']?.toString() ?? 'Hadir';
-                                      final lokasi =
-                                          item['lokasi']?.toString() ?? '';
-
-                                      final isPulang =
-                                          tipe.toLowerCase().contains(
-                                            'pulang',
-                                          ) ||
-                                          tipe.toLowerCase().contains(
-                                            'checkout',
-                                          );
-                                      final isIstirahat = tipe
-                                          .toLowerCase()
-                                          .contains('istirahat');
-
-                                      Color iconBg = Colors.green.shade50;
-                                      Color iconColor = Colors.green.shade700;
-                                      IconData iconData = Icons.login_rounded;
-
-                                      if (isPulang) {
-                                        iconBg = Colors.red.shade50;
-                                        iconColor = Colors.red.shade700;
-                                        iconData = Icons.logout_rounded;
-                                      } else if (isIstirahat) {
-                                        iconBg = Colors.amber.shade50;
-                                        iconColor = Colors.amber.shade800;
-                                        iconData = Icons.coffee_rounded;
-                                      }
-
-                                      return Row(
-                                        children: [
-                                          Container(
-                                            width: 40,
-                                            height: 40,
-                                            decoration: BoxDecoration(
-                                              color: iconBg,
-                                              shape: BoxShape.circle,
-                                            ),
-                                            child: Icon(
-                                              iconData,
-                                              color: iconColor,
-                                              size: 20,
-                                            ),
-                                          ),
-                                          const SizedBox(width: 12),
-                                          Expanded(
-                                            child: Column(
-                                              crossAxisAlignment:
-                                                  CrossAxisAlignment.start,
-                                              children: [
-                                                Text(
-                                                  tipe,
-                                                  style: const TextStyle(
-                                                    fontSize: 14,
-                                                    fontWeight: FontWeight.w700,
-                                                    color: Color(0xFF1E1E1E),
-                                                  ),
-                                                ),
-                                                if (lokasi.isNotEmpty)
-                                                  Text(
-                                                    lokasi,
-                                                    style: const TextStyle(
-                                                      fontSize: 11,
-                                                      color: Color(0xFF888888),
-                                                    ),
-                                                    maxLines: 1,
-                                                    overflow:
-                                                        TextOverflow.ellipsis,
-                                                  ),
-                                              ],
-                                            ),
-                                          ),
-                                          Column(
-                                            crossAxisAlignment:
+                                              Column(
+                                                crossAxisAlignment:
                                                 CrossAxisAlignment.end,
-                                            children: [
-                                              Text(
-                                                waktu,
-                                                style: const TextStyle(
-                                                  fontSize: 13,
-                                                  fontWeight: FontWeight.bold,
-                                                  color: Color(0xFF230505),
-                                                ),
-                                              ),
-                                              const SizedBox(height: 2),
-                                              Container(
-                                                padding:
-                                                    const EdgeInsets.symmetric(
+                                                children: [
+                                                  Text(
+                                                    waktu,
+                                                    style: const TextStyle(
+                                                      fontSize: 13,
+                                                      fontWeight:
+                                                      FontWeight.bold,
+                                                      color: Color(0xFF230505),
+                                                    ),
+                                                  ),
+                                                  const SizedBox(height: 2),
+                                                  Container(
+                                                    padding:
+                                                    const EdgeInsets
+                                                        .symmetric(
                                                       horizontal: 8,
                                                       vertical: 2,
                                                     ),
-                                                decoration: BoxDecoration(
-                                                  color:
-                                                      status.toLowerCase() ==
+                                                    decoration: BoxDecoration(
+                                                      color: status
+                                                          .toLowerCase() ==
                                                           'terlambat'
-                                                      ? Colors.amber.shade100
-                                                      : Colors.green.shade100,
-                                                  borderRadius:
-                                                      BorderRadius.circular(12),
-                                                ),
-                                                child: Text(
-                                                  status,
-                                                  style: TextStyle(
-                                                    fontSize: 10,
-                                                    fontWeight: FontWeight.bold,
-                                                    color:
-                                                        status.toLowerCase() ==
+                                                          ? Colors
+                                                          .amber.shade100
+                                                          : Colors
+                                                          .green.shade100,
+                                                      borderRadius:
+                                                      BorderRadius.circular(
+                                                        12,
+                                                      ),
+                                                    ),
+                                                    child: Text(
+                                                      status,
+                                                      style: TextStyle(
+                                                        fontSize: 10,
+                                                        fontWeight:
+                                                        FontWeight.bold,
+                                                        color: status
+                                                            .toLowerCase() ==
                                                             'terlambat'
-                                                        ? Colors.amber.shade900
-                                                        : Colors.green.shade800,
+                                                            ? Colors.amber
+                                                            .shade900
+                                                            : Colors.green
+                                                            .shade800,
+                                                      ),
+                                                    ),
                                                   ),
-                                                ),
+                                                ],
                                               ),
                                             ],
-                                          ),
-                                        ],
-                                      );
-                                    },
-                                  ),
-                              ],
-                            ),
-                          ),
+                                          );
+                                        },
+                                      ),
+                                  ],
+                                ),
+                              ),
 
-                          const SizedBox(height: 20),
-                        ],
+                              const SizedBox(height: 20),
+                            ],
+                          ),
+                        ),
                       ),
-                    ),
+                      _buildComingSoon('Cuti'),
+                      _buildComingSoon('Kalender'),
+                      ProfilePage(
+                        key: _profileKey,
+                        onUserUpdated: _applyUserUpdate,
+                      ),
+                    ],
                   ),
-                  _buildComingSoon('Cuti'),
-                  _buildComingSoon('Kalender'),
-                  ProfilePage(
-                    key: _profileKey,
-                    onUserUpdated: _applyUserUpdate,
-                  ),
-                ],
-              ),
+                ),
+              ],
             ),
-          ],
-        ),
+          ),
+        ],
       ),
 
-      // ==========================================
       // 6. BOTTOM NAVIGATION BAR
-      // ==========================================
       bottomNavigationBar: Container(
         decoration: const BoxDecoration(
           color: Colors.white,
@@ -1537,8 +1636,6 @@ class _AbsenPageState extends State<AbsenPage> {
             setState(() {
               _currentNavIndex = index;
             });
-
-            // Muat ulang profil setiap kali tab Profil dibuka.
             if (index == 3) {
               _profileKey.currentState?.reload();
             }
