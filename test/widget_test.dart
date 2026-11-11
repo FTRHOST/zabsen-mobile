@@ -1,30 +1,46 @@
-// This is a basic Flutter widget test.
-//
-// To perform an interaction with a widget in your test, use the WidgetTester
-// utility in the flutter_test package. For example, you can send tap and scroll
-// gestures. You can also use WidgetTester to find child widgets in the widget
-// tree, read text, and verify that the values of widget properties are correct.
+import 'dart:convert';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-
-import 'package:zabsen/main.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:zabsen/auth_session.dart';
+import 'package:zabsen/profile_page.dart';
 
 void main() {
-  testWidgets('Counter increments smoke test', (WidgetTester tester) async {
-    // Build our app and trigger a frame.
-    await tester.pumpWidget(const zabsen());
+  TestWidgetsFlutterBinding.ensureInitialized();
 
-    // Verify that our counter starts at 0.
-    expect(find.text('0'), findsOneWidget);
-    expect(find.text('1'), findsNothing);
+  setUp(() {
+    SharedPreferences.setMockInitialValues({
+      'userLogin': jsonEncode({
+        'id': 1,
+        'nama': 'Budi Pagi',
+        'role': 'Karyawan',
+        'no_hp': '081234567891',
+        'cabang': 'Zieda Pusat',
+        'unit': 'Operasional',
+        'sisa_cuti': 12,
+        'password': '123456',
+      }),
+    });
+  });
 
-    // Tap the '+' icon and trigger a frame.
-    await tester.tap(find.byIcon(Icons.add));
-    await tester.pump();
+  test('Sesi tersimpan tidak menyimpan password', () async {
+    final cached = await AuthSession.readCachedUser();
 
-    // Verify that our counter has incremented.
-    expect(find.text('0'), findsNothing);
-    expect(find.text('1'), findsOneWidget);
+    expect(cached, isNotNull);
+    expect(cached!['nama'], 'Budi Pagi');
+    expect(cached['password'], isNull);
+  });
+
+  testWidgets('Halaman profil menampilkan informasi pengguna', (tester) async {
+    await tester.pumpWidget(
+      const MaterialApp(home: Scaffold(body: ProfilePage())),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text('Informasi Profil'), findsOneWidget);
+    expect(find.text('Budi Pagi'), findsOneWidget);
+    expect(find.text('Ubah Password'), findsOneWidget);
+    expect(tester.takeException(), isNull);
   });
 }

@@ -1,10 +1,13 @@
 import 'dart:convert';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:video_player/video_player.dart';
 
+import 'absen_page.dart';
+import 'auth_session.dart';
 import 'login_page.dart';
 
 class SplashScreen extends StatefulWidget {
@@ -19,6 +22,10 @@ class _SplashScreenState extends State<SplashScreen> {
   bool _hasNavigated = false;
   Map<String, dynamic>? _prefetchedSettings;
 
+  // Sesi login yang dipulihkan (login hanya sekali sampai logout)
+  late final Future<void> _sessionFuture;
+  Map<String, dynamic>? _restoredUser;
+
   @override
   void initState() {
     super.initState();
@@ -28,6 +35,9 @@ class _SplashScreenState extends State<SplashScreen> {
 
     // 1. Fetch konfigurasi aplikasi di background saat video splash sedang berjalan
     _prefetchAppSettings();
+
+    // 2. Pulihkan sesi login yang tersimpan di perangkat
+    _sessionFuture = _restoreSession();
 
     _controller = VideoPlayerController.asset('assets/video/splash_white.mp4')
       ..initialize().then((_) {
@@ -64,6 +74,19 @@ class _SplashScreenState extends State<SplashScreen> {
     }
   }
 
+  /// Memulihkan sesi login agar pengguna tidak perlu login ulang
+  /// sampai menekan tombol Logout.
+  Future<void> _restoreSession() async {
+    try {
+      _restoredUser = await AuthSession.restore().timeout(
+        const Duration(seconds: 8),
+      );
+    } catch (e) {
+      debugPrint('Restore sesi gagal: $e');
+      _restoredUser = await AuthSession.readCachedUser();
+    }
+  }
+
   void _checkVideoEnd() {
     // Deteksi saat video telah selesai diputar sampai akhir
     if (_controller.value.isInitialized &&
@@ -72,23 +95,32 @@ class _SplashScreenState extends State<SplashScreen> {
       _hasNavigated = true;
       _controller.pause(); // Pertahankan (freeze) frame terakhir
 
-      // Tahan frame terakhir sejenak, lalu transisi halus (fade) ke LoginPage
-      Future.delayed(const Duration(milliseconds: 300), () {
-        if (mounted) {
-          Navigator.of(context).pushReplacement(
-            PageRouteBuilder(
-              pageBuilder: (context, animation, secondaryAnimation) =>
-                  LoginPage(initialAppSettings: _prefetchedSettings),
-              transitionsBuilder:
-                  (context, animation, secondaryAnimation, child) {
-                return FadeTransition(opacity: animation, child: child);
-              },
-              transitionDuration: const Duration(milliseconds: 400),
-            ),
-          );
-        }
-      });
+      // Tahan frame terakhir sejenak, lalu transisi halus (fade) ke halaman berikut
+      _navigateToNextPage();
     }
+  }
+
+  Future<void> _navigateToNextPage() async {
+    await Future.delayed(const Duration(milliseconds: 300));
+
+    // Pastikan pengecekan sesi sudah selesai sebelum memilih halaman
+    await _sessionFuture;
+    if (!mounted) return;
+
+    // Sudah pernah login dan belum logout -> langsung ke AbsenPage
+    final Widget nextPage = _restoredUser != null
+        ? const AbsenPage()
+        : LoginPage(initialAppSettings: _prefetchedSettings);
+
+    Navigator.of(context).pushReplacement(
+      PageRouteBuilder(
+        pageBuilder: (context, animation, secondaryAnimation) => nextPage,
+        transitionsBuilder: (context, animation, secondaryAnimation, child) {
+          return FadeTransition(opacity: animation, child: child);
+        },
+        transitionDuration: const Duration(milliseconds: 400),
+      ),
+    );
   }
 
   @override

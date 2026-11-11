@@ -1,10 +1,12 @@
 import 'dart:convert';
+
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import 'absen_page.dart';
+import 'auth_session.dart';
 
 class LoginPage extends StatefulWidget {
   final Map<String, dynamic>? initialAppSettings;
@@ -135,10 +137,7 @@ class _LoginPageState extends State<LoginPage> {
     try {
       final rpcData = await _supabase.rpc(
         'link_my_account',
-        params: {
-          'p_nama': nama,
-          'p_password': password,
-        },
+        params: {'p_nama': nama, 'p_password': password},
       );
       if (rpcData != null) {
         if (rpcData is List && rpcData.isNotEmpty) {
@@ -160,7 +159,7 @@ class _LoginPageState extends State<LoginPage> {
       final List<dynamic> users = await _supabase
           .from('users')
           .select(
-            'id, nama, role, no_hp, cabang, auth_id, hari_libur, sisa_cuti, password',
+            'id, nama, role, no_hp, cabang, unit, auth_id, hari_libur, sisa_cuti, password',
           )
           .ilike('nama', nama)
           .eq('password', password);
@@ -181,17 +180,14 @@ class _LoginPageState extends State<LoginPage> {
     // 3. Fallback Auto-Seed: Khusus akun 'Super Admin' & 'admin123' jika belum ada
     if (nama.trim().toLowerCase() == 'super admin' && password == 'admin123') {
       debugPrint('⚡ Inisialisasi akun Super Admin default...');
-      final List<dynamic> seeded = await _supabase
-          .from('users')
-          .insert([
-            {
-              'nama': 'Super Admin',
-              'password': 'admin123',
-              'role': 'Super Admin',
-              'cabang': 'Pusat',
-            }
-          ])
-          .select();
+      final List<dynamic> seeded = await _supabase.from('users').insert([
+        {
+          'nama': 'Super Admin',
+          'password': 'admin123',
+          'role': 'Super Admin',
+          'cabang': 'Pusat',
+        },
+      ]).select();
 
       if (seeded.isNotEmpty) {
         return Map<String, dynamic>.from(seeded.first);
@@ -221,13 +217,16 @@ class _LoginPageState extends State<LoginPage> {
       }
 
       // 1. Validasi akun ke database master
-      final Map<String, dynamic> validUser =
-          await _findAndValidateUser(namaUser, password);
+      final Map<String, dynamic> validUser = await _findAndValidateUser(
+        namaUser,
+        password,
+      );
 
       // 2. Buat email dummy aktif berbasis nama karyawan
       final String rawName = validUser['nama']?.toString() ?? namaUser;
-      final String cleanName =
-          rawName.replaceAll(RegExp(r'\s+'), '').toLowerCase();
+      final String cleanName = rawName
+          .replaceAll(RegExp(r'\s+'), '')
+          .toLowerCase();
       final String activeDummyEmail = '$cleanName@zieabsen.com';
 
       // 3. Autentikasi dengan Supabase Auth Engine
@@ -252,10 +251,7 @@ class _LoginPageState extends State<LoginPage> {
           final String uniqueEmail =
               '${cleanName}_${validUser['id']}@zieabsen.com';
           try {
-            await _supabase.auth.signUp(
-              email: uniqueEmail,
-              password: password,
-            );
+            await _supabase.auth.signUp(email: uniqueEmail, password: password);
           } catch (_) {}
           await _supabase.auth.signInWithPassword(
             email: uniqueEmail,
@@ -279,9 +275,9 @@ class _LoginPageState extends State<LoginPage> {
         }
       }
 
-      // 5. Simpan sesi login ke SharedPreferences
-      final prefs = await SharedPreferences.getInstance();
-      await prefs.setString('userLogin', jsonEncode(validUser));
+      // 5. Simpan sesi login ke SharedPreferences agar login hanya sekali
+      //    sampai pengguna menekan Logout.
+      await AuthSession.saveUser(validUser);
 
       if (!mounted) return;
 
@@ -395,9 +391,7 @@ class _LoginPageState extends State<LoginPage> {
             ),
             child: AnimatedSwitcher(
               duration: const Duration(milliseconds: 350),
-              child: _isLoadingSettings
-                  ? _buildSkeletonUI()
-                  : _buildRealForm(),
+              child: _isLoadingSettings ? _buildSkeletonUI() : _buildRealForm(),
             ),
           ),
         ),
@@ -413,19 +407,13 @@ class _LoginPageState extends State<LoginPage> {
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: const [
         // Skeleton Logo
-        Center(
-          child: _SkeletonBox(width: 72, height: 72, borderRadius: 16),
-        ),
+        Center(child: _SkeletonBox(width: 72, height: 72, borderRadius: 16)),
         SizedBox(height: 20),
 
         // Skeleton Judul & Subtitle
-        Center(
-          child: _SkeletonBox(width: 170, height: 26, borderRadius: 6),
-        ),
+        Center(child: _SkeletonBox(width: 170, height: 26, borderRadius: 6)),
         SizedBox(height: 10),
-        Center(
-          child: _SkeletonBox(width: 220, height: 14, borderRadius: 4),
-        ),
+        Center(child: _SkeletonBox(width: 220, height: 14, borderRadius: 4)),
         SizedBox(height: 40),
 
         // Skeleton Input 1
@@ -441,9 +429,7 @@ class _LoginPageState extends State<LoginPage> {
         SizedBox(height: 20),
 
         // Skeleton Lupa Password
-        Center(
-          child: _SkeletonBox(width: 190, height: 16, borderRadius: 4),
-        ),
+        Center(child: _SkeletonBox(width: 190, height: 16, borderRadius: 4)),
       ],
     );
   }
