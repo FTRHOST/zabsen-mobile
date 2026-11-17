@@ -11,6 +11,7 @@ import 'package:url_launcher/url_launcher.dart';
 
 import 'app_config.dart';
 import 'izin_page.dart';
+import 'kalender_page.dart';
 import 'profile_page.dart';
 import 'session_actions.dart';
 
@@ -37,6 +38,10 @@ class _AbsenPageState extends State<AbsenPage> {
 
   // Key untuk memuat ulang data cuti saat tab Izin dibuka
   final GlobalKey<IzinPageState> _izinKey = GlobalKey<IzinPageState>();
+
+  // Key untuk memuat ulang data kalender saat tab Kalender dibuka
+  final GlobalKey<KalenderPageState> _kalenderKey =
+      GlobalKey<KalenderPageState>();
 
   // Data Lokasi Kantor & Peta (Sinkron dengan Supabase)
   final MapController _mapController = MapController();
@@ -267,31 +272,6 @@ class _AbsenPageState extends State<AbsenPage> {
                 onTap: () => logoutToLogin(context),
               ),
             ],
-          ),
-        ],
-      ),
-    );
-  }
-
-  /// Placeholder untuk menu yang belum tersedia di aplikasi mobile.
-  Widget _buildComingSoon(String title) {
-    return Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          const Icon(
-            Icons.construction_rounded,
-            size: 56,
-            color: Color(0xFFB0B0B0),
-          ),
-          const SizedBox(height: 12),
-          Text(
-            'Menu $title sedang disiapkan',
-            style: const TextStyle(
-              fontSize: 14,
-              fontWeight: FontWeight.w600,
-              color: Color(0xFF6E6E6E),
-            ),
           ),
         ],
       ),
@@ -1515,7 +1495,7 @@ class _AbsenPageState extends State<AbsenPage> {
                     ),
                   ),
                   IzinPage(key: _izinKey),
-                  _buildComingSoon('Kalender'),
+                  KalenderPage(key: _kalenderKey),
                   ProfilePage(
                     key: _profileKey,
                     onUserUpdated: _applyUserUpdate,
@@ -1550,6 +1530,11 @@ class _AbsenPageState extends State<AbsenPage> {
             // Muat ulang konfigurasi & sisa cuti saat tab Izin dibuka.
             if (index == 1) {
               _izinKey.currentState?.reload();
+            }
+
+            // Muat ulang absensi & cuti saat tab Kalender dibuka.
+            if (index == 2) {
+              _kalenderKey.currentState?.reload();
             }
           },
           type: BottomNavigationBarType.fixed,

@@ -7,6 +7,7 @@ import 'package:url_launcher/url_launcher.dart';
 
 import 'app_config.dart';
 import 'auth_session.dart';
+import 'hari_libur.dart';
 
 /// Bucket penyimpanan lampiran, sama dengan web referensi
 /// (`supabase.storage.from("absensi-bucket")`).
@@ -30,16 +31,6 @@ const List<String> _kMonthShort = [
   'Okt',
   'Nov',
   'Des',
-];
-
-const List<String> _kDayNames = [
-  'Minggu',
-  'Senin',
-  'Selasa',
-  'Rabu',
-  'Kamis',
-  'Jumat',
-  'Sabtu',
 ];
 
 /// Halaman Izin & Cuti.
@@ -520,7 +511,7 @@ class IzinPageState extends State<IzinPage> {
 
       var durasiHari = 1;
       if (hasDateValue) {
-        final holidayDays = _holidayWeekdays(user['hari_libur']);
+        final holidayDays = parseHariLibur(user['hari_libur']);
         durasiHari = 0;
         for (
           var day = DateTime(start.year, start.month, start.day);
@@ -1902,38 +1893,6 @@ class IzinPageState extends State<IzinPage> {
     if (value is Map<String, dynamic>) return value;
     if (value is Map) return Map<String, dynamic>.from(value);
     return <String, dynamic>{};
-  }
-
-  /// Mengubah `hari_libur` (angka ala JavaScript `getDay()` 0-6, atau nama
-  /// hari) menjadi kumpulan indeks hari: Minggu=0 ... Sabtu=6.
-  static Set<int> _holidayWeekdays(dynamic raw) {
-    final result = <int>{};
-    if (raw == null) return result;
-
-    final text = raw.toString().trim();
-    if (text.isEmpty) return result;
-
-    for (final part in text.split(',')) {
-      final token = part.trim();
-      if (token.isEmpty) continue;
-
-      final number = int.tryParse(token);
-      if (number != null) {
-        if (number >= 0 && number <= 6) result.add(number);
-        continue;
-      }
-
-      final lower = token.toLowerCase();
-      for (var index = 0; index < _kDayNames.length; index++) {
-        final name = _kDayNames[index].toLowerCase();
-        if (lower == name || (lower.length >= 3 && name.startsWith(lower))) {
-          result.add(index);
-          break;
-        }
-      }
-    }
-
-    return result;
   }
 }
 
