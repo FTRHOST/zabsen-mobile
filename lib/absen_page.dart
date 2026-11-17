@@ -220,10 +220,21 @@ class _AbsenPageState extends State<AbsenPage> {
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style: TextStyle(
-                    fontSize: 20,
-                    fontWeight: FontWeight.w900,
+                    fontSize: 22, // Sedikit diperbesar agar lebih menonjol
+                    fontWeight: FontWeight.bold, // Memastikan fallback bold standar aktif
                     color: Color(0xFF4A1010),
-                    letterSpacing: 0.5,
+                    letterSpacing: 0.8,
+                    shadows: [
+                      // Memberikan efek ketebalan ekstra (faux bold) yang konsisten di semua HP
+                      Shadow(
+                        offset: Offset(0.12, 0),
+                        color: Color(0xFF4A1010),
+                      ),
+                      Shadow(
+                        offset: Offset(-0.4, 0),
+                        color: Color(0xFF4A1010),
+                      ),
+                    ],
                   ),
                 ),
                 const SizedBox(height: 4),
