@@ -10,6 +10,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import 'app_config.dart';
+import 'izin_page.dart';
 import 'profile_page.dart';
 import 'session_actions.dart';
 
@@ -33,6 +34,9 @@ class _AbsenPageState extends State<AbsenPage> {
 
   // Key untuk memuat ulang halaman profil saat tab Profil dibuka
   final GlobalKey<ProfilePageState> _profileKey = GlobalKey<ProfilePageState>();
+
+  // Key untuk memuat ulang data cuti saat tab Izin dibuka
+  final GlobalKey<IzinPageState> _izinKey = GlobalKey<IzinPageState>();
 
   // Data Lokasi Kantor & Peta (Sinkron dengan Supabase)
   final MapController _mapController = MapController();
@@ -1510,7 +1514,7 @@ class _AbsenPageState extends State<AbsenPage> {
                       ),
                     ),
                   ),
-                  _buildComingSoon('Cuti'),
+                  IzinPage(key: _izinKey),
                   _buildComingSoon('Kalender'),
                   ProfilePage(
                     key: _profileKey,
@@ -1542,6 +1546,11 @@ class _AbsenPageState extends State<AbsenPage> {
             if (index == 3) {
               _profileKey.currentState?.reload();
             }
+
+            // Muat ulang konfigurasi & sisa cuti saat tab Izin dibuka.
+            if (index == 1) {
+              _izinKey.currentState?.reload();
+            }
           },
           type: BottomNavigationBarType.fixed,
           backgroundColor: Colors.white,
@@ -1562,8 +1571,8 @@ class _AbsenPageState extends State<AbsenPage> {
               label: 'Absen',
             ),
             BottomNavigationBarItem(
-              icon: Icon(Icons.badge_outlined, size: 26),
-              label: 'Cuti',
+              icon: Icon(Icons.event_note_outlined, size: 26),
+              label: 'Izin',
             ),
             BottomNavigationBarItem(
               icon: Icon(Icons.calendar_month_outlined, size: 26),

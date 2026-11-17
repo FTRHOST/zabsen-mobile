@@ -14,3 +14,12 @@ const String kAdminPanelUrl = '';
 
 /// Path halaman admin pada web dashboard.
 const String kAdminPanelPath = '/admin.html';
+
+/// Chat ID grup Telegram penerima notifikasi pengajuan cuti/izin.
+///
+/// Nilai bawaan disamakan dengan `web-references-zabsen/config.js`
+/// (`TELEGRAM_CHAT_ID`). Token bot TIDAK disimpan di aplikasi; token dibaca
+/// oleh Supabase Edge Function `telegram-notif` dari Secrets.
+///
+/// Biarkan kosong untuk menonaktifkan notifikasi Telegram dari mobile.
+const String kTelegramChatId = '-1004380194522';
