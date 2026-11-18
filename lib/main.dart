@@ -17,12 +17,25 @@ Future<void> main() async {
 class zabsen extends StatelessWidget {
   const zabsen({super.key});
 
+  /// Palet Material You diturunkan dari warna utama aplikasi (burgundy),
+  /// sehingga komponen M3 (Filled/Outlined Button, sheet, dialog, dsb.)
+  /// otomatis selaras dengan halaman Login/Absen/Profil.
+  static final ColorScheme _colorScheme = ColorScheme.fromSeed(
+    seedColor: const Color(0xFF500808),
+    brightness: Brightness.light,
+  );
+
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
       title: 'zabsen - zieda absen',
-      theme: ThemeData(primarySwatch: Colors.red),
+      theme: ThemeData(
+        useMaterial3: true,
+        colorScheme: _colorScheme,
+        scaffoldBackgroundColor: _colorScheme.surface,
+        splashFactory: InkSparkle.splashFactory,
+      ),
       home: const SplashScreen(),
     );
   }
