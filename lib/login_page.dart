@@ -32,6 +32,8 @@ class _LoginPageState extends State<LoginPage> {
 
   // Warna sesuai tema ZIEDA Bakery & Cakes dari Figma
   static const Color primaryColor = Color(0xff500808); // seed/dark burgundy
+  static const Color secondaryColor = Color(0xff8a2323); // burgundy sekunder
+  static const Color accentWarm = Color(0xffd4a373); // aksen hangat bakery
   static const Color borderColor = Color(0xffe5e1e1);
   static const Color hintColor = Color(0xff939090);
 
@@ -129,10 +131,10 @@ class _LoginPageState extends State<LoginPage> {
   }
 
   /// Validasi user dengan RPC link_my_account, tabel users, dan auto-seed
-  Future<Map<String, dynamic>> _findAndValidateUser(
-    String nama,
-    String password,
-  ) async {
+  _findAndValidateUser(
+      String nama,
+      String password,
+      ) async {
     // 1. Coba via RPC link_my_account
     try {
       final rpcData = await _supabase.rpc(
@@ -159,8 +161,8 @@ class _LoginPageState extends State<LoginPage> {
       final List<dynamic> users = await _supabase
           .from('users')
           .select(
-            'id, nama, role, no_hp, cabang, unit, auth_id, hari_libur, sisa_cuti, password',
-          )
+        'id, nama, role, no_hp, cabang, unit, auth_id, hari_libur, sisa_cuti, password',
+      )
           .ilike('nama', nama)
           .eq('password', password);
 
@@ -217,7 +219,7 @@ class _LoginPageState extends State<LoginPage> {
       }
 
       // 1. Validasi akun ke database master
-      final Map<String, dynamic> validUser = await _findAndValidateUser(
+      final validUser = await _findAndValidateUser(
         namaUser,
         password,
       );
@@ -347,8 +349,8 @@ class _LoginPageState extends State<LoginPage> {
       context: context,
       builder: (ctx) => AlertDialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: Row(
-          children: const [
+        title: const Row(
+          children: [
             Icon(Icons.error_outline_rounded, color: Colors.red),
             SizedBox(width: 8),
             Text('Login Gagal', style: TextStyle(fontSize: 18)),
@@ -380,32 +382,117 @@ class _LoginPageState extends State<LoginPage> {
 
   @override
   Widget build(BuildContext context) {
+    final screenSize = MediaQuery.of(context).size;
+
     return Scaffold(
-      backgroundColor: Colors.white,
-      body: SafeArea(
-        child: Center(
-          child: SingleChildScrollView(
-            padding: const EdgeInsets.symmetric(
-              horizontal: 36.0,
-              vertical: 24.0,
+      backgroundColor: const Color(0xfffaf9f8),
+      body: Stack(
+        children: [
+          // LAYER BACKGROUND: Lengkungan & elemen geometris lembut
+          _buildBackgroundShapes(screenSize),
+
+          // LAYER FOREGROUND: Konten Form
+          SafeArea(
+            child: Center(
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 36.0,
+                  vertical: 24.0,
+                ),
+                child: AnimatedSwitcher(
+                  duration: const Duration(milliseconds: 350),
+                  child: _isLoadingSettings
+                      ? _buildSkeletonUI()
+                      : _buildRealForm(),
+                ),
+              ),
             ),
-            child: AnimatedSwitcher(
-              duration: const Duration(milliseconds: 350),
-              child: _isLoadingSettings ? _buildSkeletonUI() : _buildRealForm(),
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// Elemen dekorasi background tema Bakery ZIEDA
+  Widget _buildBackgroundShapes(Size size) {
+    return Stack(
+      children: [
+        // Lengkungan besar di atas dengan gradien burgundy halus
+        Positioned(
+          top: -size.height * 0.12,
+          left: -size.width * 0.15,
+          child: Container(
+            width: size.width * 1.3,
+            height: size.height * 0.38,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              gradient: LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: [
+                  primaryColor.withValues(alpha: 0.10),
+                  secondaryColor.withValues(alpha: 0.03),
+                ],
+              ),
             ),
           ),
         ),
-      ),
+
+        // Lingkaran aksen hangat di kanan atas
+        Positioned(
+          top: size.height * 0.08,
+          right: -40,
+          child: Container(
+            width: 140,
+            height: 140,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              color: accentWarm.withValues(alpha: 0.12),
+            ),
+          ),
+        ),
+
+        // Bentuk membulat miring di kiri bawah
+        Positioned(
+          bottom: -50,
+          left: -40,
+          child: Transform.rotate(
+            angle: 0.35,
+            child: Container(
+              width: 180,
+              height: 180,
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(36),
+                color: primaryColor.withValues(alpha: 0.04),
+              ),
+            ),
+          ),
+        ),
+
+        // Lingkaran kecil di kanan bawah
+        Positioned(
+          bottom: size.height * 0.12,
+          right: -25,
+          child: Container(
+            width: 90,
+            height: 90,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              color: secondaryColor.withValues(alpha: 0.05),
+            ),
+          ),
+        ),
+      ],
     );
   }
 
   /// UI Skeleton (Placeholder animasi saat data belum selesai diambil)
   Widget _buildSkeletonUI() {
-    return Column(
-      key: const ValueKey('skeleton_view'),
+    return const Column(
+      key: ValueKey('skeleton_view'),
       mainAxisAlignment: MainAxisAlignment.center,
       crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: const [
+      children: [
         // Skeleton Logo
         Center(child: _SkeletonBox(width: 72, height: 72, borderRadius: 16)),
         SizedBox(height: 20),
@@ -447,20 +534,20 @@ class _LoginPageState extends State<LoginPage> {
           Center(
             child: _logoUrl != null
                 ? Image.network(
-                    _logoUrl!,
-                    height: 72,
-                    fit: BoxFit.contain,
-                    errorBuilder: (context, error, stackTrace) => Image.asset(
-                      'assets/images/logo_zieda.png',
-                      height: 72,
-                      fit: BoxFit.contain,
-                    ),
-                  )
+              _logoUrl!,
+              height: 72,
+              fit: BoxFit.contain,
+              errorBuilder: (context, error, stackTrace) => Image.asset(
+                'assets/images/logo_zieda.png',
+                height: 72,
+                fit: BoxFit.contain,
+              ),
+            )
                 : Image.asset(
-                    'assets/images/logo_zieda.png',
-                    height: 72,
-                    fit: BoxFit.contain,
-                  ),
+              'assets/images/logo_zieda.png',
+              height: 72,
+              fit: BoxFit.contain,
+            ),
           ),
           const SizedBox(height: 20),
 
@@ -608,21 +695,21 @@ class _LoginPageState extends State<LoginPage> {
               ),
               child: _isLoading
                   ? const SizedBox(
-                      height: 22,
-                      width: 22,
-                      child: CircularProgressIndicator(
-                        strokeWidth: 2.5,
-                        color: Colors.white,
-                      ),
-                    )
+                height: 22,
+                width: 22,
+                child: CircularProgressIndicator(
+                  strokeWidth: 2.5,
+                  color: Colors.white,
+                ),
+              )
                   : const Text(
-                      'LOGIN',
-                      style: TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.bold,
-                        letterSpacing: 1.0,
-                      ),
-                    ),
+                'LOGIN',
+                style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
+                  letterSpacing: 1.0,
+                ),
+              ),
             ),
           ),
           const SizedBox(height: 16),
