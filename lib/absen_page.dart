@@ -23,6 +23,10 @@ class AbsenPage extends StatefulWidget {
 }
 
 class _AbsenPageState extends State<AbsenPage> {
+  // Font utama menggunakan Google Sans Flex dan font sekunder Inter
+  static const String _primaryFont = 'Google Sans Flex';
+  static const String _secondaryFont = 'Inter';
+
   int _currentNavIndex = 0;
   late Timer _timer;
   DateTime _currentTime = DateTime.now();
@@ -140,21 +144,27 @@ class _AbsenPageState extends State<AbsenPage> {
                 color: Color(0xFF4A1010),
               ),
               SizedBox(width: 8),
-              Text('Panel Admin', style: TextStyle(fontSize: 18)),
+              Text(
+                'Panel Admin',
+                style: TextStyle(fontFamily: _primaryFont, fontSize: 18),
+              ),
             ],
           ),
           content: const Text(
             'URL panel admin web belum dikonfigurasi.\n\n'
             'Isi konstanta kAdminPanelUrl pada lib/app_config.dart dengan '
             'alamat web dashboard Zieda Absen.',
-            style: TextStyle(fontSize: 14),
+            style: TextStyle(fontFamily: _secondaryFont, fontSize: 14),
           ),
           actions: [
             TextButton(
               onPressed: () => Navigator.of(ctx).pop(),
               child: const Text(
                 'OK',
-                style: TextStyle(color: Color(0xFF4A1010)),
+                style: TextStyle(
+                  fontFamily: _primaryFont,
+                  color: Color(0xFF4A1010),
+                ),
               ),
             ),
           ],
@@ -202,6 +212,7 @@ class _AbsenPageState extends State<AbsenPage> {
           child: Text(
             label,
             style: const TextStyle(
+              fontFamily: _primaryFont,
               color: Colors.white,
               fontSize: 12,
               fontWeight: FontWeight.w700,
@@ -212,27 +223,20 @@ class _AbsenPageState extends State<AbsenPage> {
     );
   }
 
-  /// Tombol pil kaca transparan pada Hero Header tab Absen.
+  /// Tombol aksi ringan pada Hero Header tab Absen.
   Widget _buildHeroGlassAction({
     required String label,
     required IconData icon,
     required VoidCallback onTap,
   }) {
     return Material(
-      color: Colors.white.withValues(alpha: 0.16),
+      color: Colors.white.withValues(alpha: 0.14),
       borderRadius: BorderRadius.circular(40),
       child: InkWell(
         borderRadius: BorderRadius.circular(40),
         onTap: onTap,
-        child: Container(
+        child: Padding(
           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(40),
-            border: Border.all(
-              color: Colors.white.withValues(alpha: 0.25),
-              width: 1,
-            ),
-          ),
           child: Row(
             mainAxisSize: MainAxisSize.min,
             children: [
@@ -241,6 +245,7 @@ class _AbsenPageState extends State<AbsenPage> {
               Text(
                 label,
                 style: const TextStyle(
+                  fontFamily: _primaryFont,
                   color: Colors.white,
                   fontSize: 12,
                   fontWeight: FontWeight.w600,
@@ -270,21 +275,23 @@ class _AbsenPageState extends State<AbsenPage> {
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style: TextStyle(
+                    fontFamily: _primaryFont,
                     fontSize: 20,
-                    fontWeight: FontWeight.w900,
+                    fontWeight: FontWeight.w800,
                     color: Color(0xFF4A1010),
-                    letterSpacing: 0.5,
+                    letterSpacing: 0.6,
                   ),
                 ),
-                const SizedBox(height: 4),
+                const SizedBox(height: 3),
                 Text(
                   'Selamat Datang, $_userName',
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style: const TextStyle(
-                    fontSize: 14,
-                    fontWeight: FontWeight.w600,
-                    color: Color(0xFF1E1E1E),
+                    fontFamily: _secondaryFont,
+                    fontSize: 13.5,
+                    fontWeight: FontWeight.w500,
+                    color: Color(0xFF4A4A4A),
                   ),
                 ),
               ],
@@ -521,11 +528,14 @@ class _AbsenPageState extends State<AbsenPage> {
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(16),
           ),
-          title: const Text('Sesi Login Berakhir'),
+          title: const Text(
+            'Sesi Login Berakhir',
+            style: TextStyle(fontFamily: _primaryFont),
+          ),
           content: const Text(
             'Sesi keamanan Anda sudah berakhir. Silakan login kembali untuk '
             'melanjutkan absensi.',
-            style: TextStyle(fontSize: 14),
+            style: TextStyle(fontFamily: _secondaryFont, fontSize: 14),
           ),
           actions: [
             TextButton(
@@ -535,7 +545,10 @@ class _AbsenPageState extends State<AbsenPage> {
               },
               child: const Text(
                 'Login Ulang',
-                style: TextStyle(color: Color(0xFF4A1010)),
+                style: TextStyle(
+                  fontFamily: _primaryFont,
+                  color: Color(0xFF4A1010),
+                ),
               ),
             ),
           ],
@@ -625,19 +638,25 @@ class _AbsenPageState extends State<AbsenPage> {
             children: [
               Icon(Icons.error_outline_rounded, color: Colors.red),
               SizedBox(width: 8),
-              Text('Di Luar Jangkauan', style: TextStyle(fontSize: 18)),
+              Text(
+                'Di Luar Jangkauan',
+                style: TextStyle(fontFamily: _primaryFont, fontSize: 18),
+              ),
             ],
           ),
           content: Text(
             'Anda berada di luar radius $_namaKantor!\nJarak Anda saat ini: $_distanceToOffice meter (Maksimal: $_radiusMaksimal meter).',
-            style: const TextStyle(fontSize: 14),
+            style: const TextStyle(fontFamily: _secondaryFont, fontSize: 14),
           ),
           actions: [
             TextButton(
               onPressed: () => Navigator.of(ctx).pop(),
               child: const Text(
                 'Tutup',
-                style: TextStyle(color: Color(0xFF4A1010)),
+                style: TextStyle(
+                  fontFamily: _primaryFont,
+                  color: Color(0xFF4A1010),
+                ),
               ),
             ),
           ],
@@ -679,8 +698,9 @@ class _AbsenPageState extends State<AbsenPage> {
                 const Text(
                   'Pilih Kategori Absen',
                   style: TextStyle(
+                    fontFamily: _primaryFont,
                     fontSize: 18,
-                    fontWeight: FontWeight.bold,
+                    fontWeight: FontWeight.w700,
                     color: Color(0xFF1E1E1E),
                   ),
                   textAlign: TextAlign.center,
@@ -769,15 +789,17 @@ class _AbsenPageState extends State<AbsenPage> {
                   Text(
                     title,
                     style: const TextStyle(
+                      fontFamily: _primaryFont,
                       fontSize: 14,
-                      fontWeight: FontWeight.bold,
+                      fontWeight: FontWeight.w700,
                       color: Color(0xFF1E1E1E),
                     ),
                   ),
                   Text(
                     subtitle,
                     style: const TextStyle(
-                      fontSize: 11,
+                      fontFamily: _secondaryFont,
+                      fontSize: 11.5,
                       color: Color(0xFF6E6E6E),
                     ),
                   ),
@@ -795,8 +817,12 @@ class _AbsenPageState extends State<AbsenPage> {
     );
   }
 
-  /// Tab Utama (Absen) dengan tata letak Hero Gradient Header & Overlapping Card
-  Widget _buildAbsenTab(String jamMenit, String tanggalFormatted) {
+  /// Tab Utama (Absen) dengan Hero Gradient Header yang presisi & tipografi hidup
+  Widget _buildAbsenTab(
+    String jamMenit,
+    String detik,
+    String tanggalFormatted,
+  ) {
     final double topSafePadding = MediaQuery.of(context).padding.top;
 
     return RefreshIndicator(
@@ -811,20 +837,21 @@ class _AbsenPageState extends State<AbsenPage> {
           children: [
             // ==========================================================
             // LAYER BACKGROUND GRADASI HEADER (ZIEDA BURGUNDY PALETTE)
+            // Tinggi dipaskan agar kartu jam bertumpu tepat di garis bawahnya
             // ==========================================================
             Container(
-              height: 235 + topSafePadding,
+              height: 212 + topSafePadding,
               width: double.infinity,
               decoration: const BoxDecoration(
                 gradient: LinearGradient(
                   begin: Alignment.topLeft,
                   end: Alignment.bottomRight,
                   colors: [
-                    Color(0xFF3A0A0A), // Deep Maroon
-                    Color(0xFF681616), // Rich Burgundy
-                    Color(0xFFA64B3A), // Warm Terracotta Accent
+                    Color(0xFF330808), // Deep Espresso Maroon
+                    Color(0xFF5E1212), // Rich Burgundy
+                    Color(0xFF8F382B), // Warm Terracotta
                   ],
-                  stops: [0.0, 0.58, 1.0],
+                  stops: [0.0, 0.55, 1.0],
                 ),
                 borderRadius: BorderRadius.vertical(
                   bottom: Radius.circular(32),
@@ -834,32 +861,19 @@ class _AbsenPageState extends State<AbsenPage> {
                 children: [
                   // Aksen cahaya lembut di sudut kanan bawah header
                   Positioned(
-                    right: -30,
-                    bottom: -20,
+                    right: -25,
+                    bottom: -25,
                     child: Container(
-                      width: 170,
-                      height: 170,
+                      width: 180,
+                      height: 180,
                       decoration: BoxDecoration(
                         shape: BoxShape.circle,
                         gradient: RadialGradient(
                           colors: [
-                            const Color(0xFFD4A373).withValues(alpha: 0.28),
+                            const Color(0xFFE0B17E).withValues(alpha: 0.24),
                             Colors.transparent,
                           ],
                         ),
-                      ),
-                    ),
-                  ),
-                  // Aksen lingkaran halus di kiri atas
-                  Positioned(
-                    left: -40,
-                    top: -20,
-                    child: Container(
-                      width: 140,
-                      height: 140,
-                      decoration: BoxDecoration(
-                        shape: BoxShape.circle,
-                        color: Colors.white.withValues(alpha: 0.04),
                       ),
                     ),
                   ),
@@ -880,45 +894,19 @@ class _AbsenPageState extends State<AbsenPage> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // 1. TOP UTILITY BAR (Badge Brand & Tombol Aksi)
+                  // 1. TOP BAR: Tulisan ZIEDA ABSEN murni tanpa box/lingkaran
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    crossAxisAlignment: CrossAxisAlignment.center,
                     children: [
-                      // Pill Badge Brand & Cabang
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 12,
-                          vertical: 6,
-                        ),
-                        decoration: BoxDecoration(
-                          color: Colors.white.withValues(alpha: 0.14),
-                          borderRadius: BorderRadius.circular(30),
-                          border: Border.all(
-                            color: Colors.white.withValues(alpha: 0.2),
-                          ),
-                        ),
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Container(
-                              width: 7,
-                              height: 7,
-                              decoration: const BoxDecoration(
-                                color: Color(0xFFE8C391),
-                                shape: BoxShape.circle,
-                              ),
-                            ),
-                            const SizedBox(width: 7),
-                            const Text(
-                              'ZIEDA ABSEN',
-                              style: TextStyle(
-                                fontSize: 11,
-                                fontWeight: FontWeight.w800,
-                                color: Colors.white,
-                                letterSpacing: 0.8,
-                              ),
-                            ),
-                          ],
+                      const Text(
+                        'ZIEDA ABSEN',
+                        style: TextStyle(
+                          fontFamily: _primaryFont,
+                          fontSize: 15,
+                          fontWeight: FontWeight.w800,
+                          color: Colors.white,
+                          letterSpacing: 1.4,
                         ),
                       ),
 
@@ -944,9 +932,9 @@ class _AbsenPageState extends State<AbsenPage> {
                     ],
                   ),
 
-                  const SizedBox(height: 20),
+                  const SizedBox(height: 18),
 
-                  // 2. GREETING TIPOGRAFI KONTRAS (Light + Bold)
+                  // 2. GREETING TIPOGRAFI KONTRAS (Secondary Regular + Primary Bold)
                   RichText(
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
@@ -960,13 +948,15 @@ class _AbsenPageState extends State<AbsenPage> {
                         TextSpan(
                           text: 'Halo, ',
                           style: TextStyle(
+                            fontFamily: _secondaryFont,
                             fontWeight: FontWeight.w400,
-                            color: Colors.white.withValues(alpha: 0.88),
+                            color: Colors.white.withValues(alpha: 0.86),
                           ),
                         ),
                         TextSpan(
                           text: _userName,
                           style: const TextStyle(
+                            fontFamily: _primaryFont,
                             fontWeight: FontWeight.w800,
                             color: Colors.white,
                           ),
@@ -978,48 +968,49 @@ class _AbsenPageState extends State<AbsenPage> {
                   Text(
                     tanggalFormatted,
                     style: TextStyle(
-                      fontSize: 13.5,
+                      fontFamily: _secondaryFont,
+                      fontSize: 13,
                       fontWeight: FontWeight.w400,
-                      color: Colors.white.withValues(alpha: 0.82),
-                      letterSpacing: 0.1,
+                      color: Colors.white.withValues(alpha: 0.80),
                     ),
                   ),
 
                   const SizedBox(height: 22),
 
-                  // 3. OVERLAPPING HERO CARD: JAM DIGITAL & STATUS LOKASI
+                  // 3. OVERLAPPING HERO CARD: JAM HIDUP TANPA GARIS PEMISAH
                   Container(
                     width: double.infinity,
                     padding: const EdgeInsets.symmetric(
-                      vertical: 18.0,
-                      horizontal: 20.0,
+                      vertical: 20.0,
+                      horizontal: 22.0,
                     ),
                     decoration: BoxDecoration(
                       color: Colors.white,
                       borderRadius: BorderRadius.circular(24),
                       boxShadow: [
                         BoxShadow(
-                          color: const Color(0xFF2D0707).withValues(alpha: 0.10),
+                          color: const Color(0xFF2D0707).withValues(alpha: 0.09),
                           blurRadius: 24,
                           offset: const Offset(0, 10),
                         ),
                       ],
                     ),
                     child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.center,
                       children: [
-                        // Kolom Kiri: Jam Realtime
+                        // Sisi Kiri: Tipografi Jam Hidup (Jam:Menit besar + Detik & WIB)
                         Expanded(
-                          flex: 5,
+                          flex: 6,
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               Text(
-                                'WAKTU SAAT INI',
+                                'Waktu Sekarang',
                                 style: TextStyle(
-                                  fontSize: 10,
-                                  fontWeight: FontWeight.w700,
+                                  fontFamily: _secondaryFont,
+                                  fontSize: 11.5,
+                                  fontWeight: FontWeight.w500,
                                   color: Colors.grey.shade500,
-                                  letterSpacing: 0.8,
                                 ),
                               ),
                               const SizedBox(height: 4),
@@ -1030,20 +1021,38 @@ class _AbsenPageState extends State<AbsenPage> {
                                   Text(
                                     jamMenit,
                                     style: const TextStyle(
-                                      fontSize: 36,
-                                      fontWeight: FontWeight.w900,
+                                      fontFamily: _primaryFont,
+                                      fontSize: 40,
+                                      fontWeight: FontWeight.w800,
                                       color: Color(0xFF230505),
-                                      letterSpacing: -1.0,
+                                      letterSpacing: -1.4,
                                       height: 1.0,
+                                      fontFeatures: [
+                                        FontFeature.tabularFigures(),
+                                      ],
                                     ),
                                   ),
-                                  const SizedBox(width: 6),
-                                  const Text(
+                                  const SizedBox(width: 4),
+                                  Text(
+                                    ':$detik',
+                                    style: const TextStyle(
+                                      fontFamily: _primaryFont,
+                                      fontSize: 19,
+                                      fontWeight: FontWeight.w600,
+                                      color: Color(0xFF8F382B),
+                                      fontFeatures: [
+                                        FontFeature.tabularFigures(),
+                                      ],
+                                    ),
+                                  ),
+                                  const SizedBox(width: 5),
+                                  Text(
                                     'WIB',
                                     style: TextStyle(
-                                      fontSize: 13,
-                                      fontWeight: FontWeight.w800,
-                                      color: Color(0xFF681616),
+                                      fontFamily: _secondaryFont,
+                                      fontSize: 11.5,
+                                      fontWeight: FontWeight.w700,
+                                      color: Colors.grey.shade500,
                                     ),
                                   ),
                                 ],
@@ -1052,24 +1061,18 @@ class _AbsenPageState extends State<AbsenPage> {
                           ),
                         ),
 
-                        // Garis Pemisah Vertikal Tipis
-                        Container(
-                          height: 46,
-                          width: 1,
-                          color: const Color(0xFFECE8E6),
-                          margin: const EdgeInsets.symmetric(horizontal: 14),
-                        ),
+                        const SizedBox(width: 12),
 
-                        // Kolom Kanan: Info Cabang & Status Radius
+                        // Sisi Kanan: Status Radius & Kantor (Rata kanan, bersih tanpa garis)
                         Expanded(
                           flex: 5,
                           child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
+                            crossAxisAlignment: CrossAxisAlignment.end,
                             children: [
                               Container(
                                 padding: const EdgeInsets.symmetric(
-                                  horizontal: 8,
-                                  vertical: 3,
+                                  horizontal: 9,
+                                  vertical: 4,
                                 ),
                                 decoration: BoxDecoration(
                                   color: _userPosition == null
@@ -1077,7 +1080,7 @@ class _AbsenPageState extends State<AbsenPage> {
                                       : (_isInsideRadius
                                           ? const Color(0xFFE8F5E9)
                                           : const Color(0xFFFFEBEE)),
-                                  borderRadius: BorderRadius.circular(8),
+                                  borderRadius: BorderRadius.circular(10),
                                 ),
                                 child: Text(
                                   _userPosition == null
@@ -1086,6 +1089,7 @@ class _AbsenPageState extends State<AbsenPage> {
                                           ? 'Dalam Radius'
                                           : 'Di Luar Radius'),
                                   style: TextStyle(
+                                    fontFamily: _primaryFont,
                                     fontSize: 10.5,
                                     fontWeight: FontWeight.w700,
                                     color: _userPosition == null
@@ -1096,12 +1100,14 @@ class _AbsenPageState extends State<AbsenPage> {
                                   ),
                                 ),
                               ),
-                              const SizedBox(height: 6),
+                              const SizedBox(height: 7),
                               Text(
                                 _namaKantor,
                                 maxLines: 1,
                                 overflow: TextOverflow.ellipsis,
+                                textAlign: TextAlign.right,
                                 style: const TextStyle(
+                                  fontFamily: _primaryFont,
                                   fontSize: 13.5,
                                   fontWeight: FontWeight.w700,
                                   color: Color(0xFF1E1E1E),
@@ -1111,10 +1117,12 @@ class _AbsenPageState extends State<AbsenPage> {
                               Text(
                                 _userPosition == null
                                     ? 'Menghitung jarak...'
-                                    : 'Jarak $_distanceToOffice m (Maks $_radiusMaksimal m)',
+                                    : '$_distanceToOffice m dari lokasi',
                                 maxLines: 1,
                                 overflow: TextOverflow.ellipsis,
+                                textAlign: TextAlign.right,
                                 style: TextStyle(
+                                  fontFamily: _secondaryFont,
                                   fontSize: 11,
                                   color: Colors.grey.shade600,
                                 ),
@@ -1135,8 +1143,9 @@ class _AbsenPageState extends State<AbsenPage> {
                       const Text(
                         'Lokasi Presensi',
                         style: TextStyle(
+                          fontFamily: _primaryFont,
                           fontSize: 16,
-                          fontWeight: FontWeight.w800,
+                          fontWeight: FontWeight.w700,
                           color: Color(0xFF1E1E1E),
                           letterSpacing: -0.2,
                         ),
@@ -1146,9 +1155,10 @@ class _AbsenPageState extends State<AbsenPage> {
                         child: Text(
                           _isLoadingLocation ? 'Memperbarui...' : 'Perbarui GPS',
                           style: const TextStyle(
+                            fontFamily: _primaryFont,
                             fontSize: 12.5,
                             fontWeight: FontWeight.w700,
-                            color: Color(0xFF681616),
+                            color: Color(0xFF5E1212),
                           ),
                         ),
                       ),
@@ -1272,8 +1282,9 @@ class _AbsenPageState extends State<AbsenPage> {
                                               child: Text(
                                                 _namaKantor,
                                                 style: const TextStyle(
+                                                  fontFamily: _primaryFont,
                                                   fontSize: 9,
-                                                  fontWeight: FontWeight.bold,
+                                                  fontWeight: FontWeight.w700,
                                                   color: Color(0xFF4A1010),
                                                 ),
                                                 maxLines: 1,
@@ -1318,8 +1329,9 @@ class _AbsenPageState extends State<AbsenPage> {
                                                 child: const Text(
                                                   'Posisi Anda',
                                                   style: TextStyle(
+                                                    fontFamily: _primaryFont,
                                                     fontSize: 9,
-                                                    fontWeight: FontWeight.bold,
+                                                    fontWeight: FontWeight.w700,
                                                     color: Colors.white,
                                                   ),
                                                 ),
@@ -1428,7 +1440,8 @@ class _AbsenPageState extends State<AbsenPage> {
                           const Text(
                             'Catat Kehadiran Sekarang',
                             style: TextStyle(
-                              fontSize: 16,
+                              fontFamily: _primaryFont,
+                              fontSize: 15.5,
                               fontWeight: FontWeight.w700,
                               color: Colors.white,
                               letterSpacing: 0.2,
@@ -1448,8 +1461,9 @@ class _AbsenPageState extends State<AbsenPage> {
                       const Text(
                         'Riwayat Absen Hari Ini',
                         style: TextStyle(
+                          fontFamily: _primaryFont,
                           fontSize: 16,
-                          fontWeight: FontWeight.w800,
+                          fontWeight: FontWeight.w700,
                           color: Color(0xFF1E1E1E),
                           letterSpacing: -0.2,
                         ),
@@ -1459,9 +1473,10 @@ class _AbsenPageState extends State<AbsenPage> {
                         child: const Text(
                           'Segarkan',
                           style: TextStyle(
+                            fontFamily: _primaryFont,
                             fontSize: 12.5,
                             fontWeight: FontWeight.w700,
-                            color: Color(0xFF681616),
+                            color: Color(0xFF5E1212),
                           ),
                         ),
                       ),
@@ -1511,6 +1526,7 @@ class _AbsenPageState extends State<AbsenPage> {
                                       Text(
                                         'Belum ada riwayat absensi hari ini',
                                         style: TextStyle(
+                                          fontFamily: _secondaryFont,
                                           fontSize: 13,
                                           color: Color(0xFF757575),
                                           fontWeight: FontWeight.w500,
@@ -1524,10 +1540,8 @@ class _AbsenPageState extends State<AbsenPage> {
                                 shrinkWrap: true,
                                 physics: const NeverScrollableScrollPhysics(),
                                 itemCount: _riwayatHariIni.length,
-                                separatorBuilder: (_, __) => const Divider(
-                                  height: 20,
-                                  color: Color(0xFFF3EFEF),
-                                ),
+                                separatorBuilder: (_, __) =>
+                                    const SizedBox(height: 14),
                                 itemBuilder: (context, index) {
                                   final item = _riwayatHariIni[index];
                                   final tipe =
@@ -1586,6 +1600,7 @@ class _AbsenPageState extends State<AbsenPage> {
                                             Text(
                                               tipe,
                                               style: const TextStyle(
+                                                fontFamily: _primaryFont,
                                                 fontSize: 14,
                                                 fontWeight: FontWeight.w700,
                                                 color: Color(0xFF1E1E1E),
@@ -1595,6 +1610,7 @@ class _AbsenPageState extends State<AbsenPage> {
                                               Text(
                                                 lokasi,
                                                 style: const TextStyle(
+                                                  fontFamily: _secondaryFont,
                                                   fontSize: 11,
                                                   color: Color(0xFF888888),
                                                 ),
@@ -1611,9 +1627,13 @@ class _AbsenPageState extends State<AbsenPage> {
                                           Text(
                                             waktu,
                                             style: const TextStyle(
+                                              fontFamily: _primaryFont,
                                               fontSize: 13.5,
-                                              fontWeight: FontWeight.w800,
+                                              fontWeight: FontWeight.w700,
                                               color: Color(0xFF230505),
+                                              fontFeatures: [
+                                                FontFeature.tabularFigures(),
+                                              ],
                                             ),
                                           ),
                                           const SizedBox(height: 3),
@@ -1633,6 +1653,7 @@ class _AbsenPageState extends State<AbsenPage> {
                                             child: Text(
                                               status,
                                               style: TextStyle(
+                                                fontFamily: _primaryFont,
                                                 fontSize: 10,
                                                 fontWeight: FontWeight.w700,
                                                 color: status.toLowerCase() ==
@@ -1662,6 +1683,7 @@ class _AbsenPageState extends State<AbsenPage> {
   Widget build(BuildContext context) {
     final String jamMenit =
         '${_formatDigit(_currentTime.hour)}:${_formatDigit(_currentTime.minute)}';
+    final String detik = _formatDigit(_currentTime.second);
     final String tanggalFormatted = _formatTanggal(_currentTime);
 
     return Scaffold(
@@ -1680,7 +1702,7 @@ class _AbsenPageState extends State<AbsenPage> {
             child: IndexedStack(
               index: _currentNavIndex,
               children: [
-                _buildAbsenTab(jamMenit, tanggalFormatted),
+                _buildAbsenTab(jamMenit, detik, tanggalFormatted),
                 IzinPage(key: _izinKey),
                 KalenderPage(key: _kalenderKey),
                 ProfilePage(
@@ -1724,10 +1746,12 @@ class _AbsenPageState extends State<AbsenPage> {
           selectedItemColor: const Color(0xFF4A1010),
           unselectedItemColor: const Color(0xFF6E6E6E),
           selectedLabelStyle: const TextStyle(
+            fontFamily: _primaryFont,
             fontWeight: FontWeight.w700,
             fontSize: 12,
           ),
           unselectedLabelStyle: const TextStyle(
+            fontFamily: _secondaryFont,
             fontWeight: FontWeight.w500,
             fontSize: 12,
           ),
