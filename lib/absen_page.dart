@@ -104,7 +104,6 @@ class _AbsenPageState extends State<AbsenPage> {
   }
 
   /// Menampilkan tombol Admin hanya untuk role HR / Super Admin
-  /// (sama seperti web referensi).
   bool get _isAdmin {
     final role = _userRole.trim().toLowerCase();
     return role == 'hr' || role == 'super admin';
@@ -122,7 +121,7 @@ class _AbsenPageState extends State<AbsenPage> {
     });
   }
 
-  /// Membuka panel admin web (web-references-zabsen/admin.html).
+  /// Membuka panel admin web.
   Future<void> _openAdminPanel() async {
     final baseUrl = kAdminPanelUrl.trim();
 
@@ -187,7 +186,7 @@ class _AbsenPageState extends State<AbsenPage> {
     }
   }
 
-  /// Tombol pil pada header (gaya web referensi).
+  /// Tombol pil pada header untuk tab non-Absen (putih bersih).
   Widget _buildHeaderAction({
     required String label,
     required VoidCallback onTap,
@@ -213,9 +212,49 @@ class _AbsenPageState extends State<AbsenPage> {
     );
   }
 
-  /// Header global aplikasi (tampil di semua tab, seperti web referensi).
-  /// Foto profil lama diganti tombol Admin (khusus HR/Super Admin) & Logout.
-  Widget _buildAppHeader() {
+  /// Tombol pil kaca transparan pada Hero Header tab Absen.
+  Widget _buildHeroGlassAction({
+    required String label,
+    required IconData icon,
+    required VoidCallback onTap,
+  }) {
+    return Material(
+      color: Colors.white.withValues(alpha: 0.16),
+      borderRadius: BorderRadius.circular(40),
+      child: InkWell(
+        borderRadius: BorderRadius.circular(40),
+        onTap: onTap,
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(40),
+            border: Border.all(
+              color: Colors.white.withValues(alpha: 0.25),
+              width: 1,
+            ),
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(icon, color: Colors.white, size: 14),
+              const SizedBox(width: 5),
+              Text(
+                label,
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 12,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  /// Header standar untuk tab Izin, Kalender, dan Profil.
+  Widget _buildStandardHeader() {
     return Container(
       color: Colors.white,
       padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 16.0),
@@ -238,23 +277,15 @@ class _AbsenPageState extends State<AbsenPage> {
                   ),
                 ),
                 const SizedBox(height: 4),
-                Row(
-                  children: [
-                    Flexible(
-                      child: Text(
-                        'Selamat Datang, $_userName',
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(
-                          fontSize: 14,
-                          fontWeight: FontWeight.w600,
-                          color: Color(0xFF1E1E1E),
-                        ),
-                      ),
-                    ),
-                    const SizedBox(width: 4),
-                    const Text('👋', style: TextStyle(fontSize: 14)),
-                  ],
+                Text(
+                  'Selamat Datang, $_userName',
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w600,
+                    color: Color(0xFF1E1E1E),
+                  ),
                 ),
               ],
             ),
@@ -300,14 +331,12 @@ class _AbsenPageState extends State<AbsenPage> {
     // 2. Ambil data kantor dari Supabase API
     try {
       final supabase = Supabase.instance.client;
-      final List<dynamic> dataKantor = await supabase
-          .from('kantor')
-          .select('*');
+      final List<dynamic> dataKantor =
+          await supabase.from('kantor').select('*');
 
       if (dataKantor.isNotEmpty && mounted) {
-        _listKantor = dataKantor
-            .map((e) => Map<String, dynamic>.from(e))
-            .toList();
+        _listKantor =
+            dataKantor.map((e) => Map<String, dynamic>.from(e)).toList();
 
         // Cari kantor cabang yang ditugaskan ke user
         final assigned = _listKantor.firstWhere(
@@ -361,9 +390,8 @@ class _AbsenPageState extends State<AbsenPage> {
 
       if (mounted) {
         setState(() {
-          _riwayatHariIni = rows
-              .map((e) => Map<String, dynamic>.from(e))
-              .toList();
+          _riwayatHariIni =
+              rows.map((e) => Map<String, dynamic>.from(e)).toList();
           _isLoadingRiwayat = false;
         });
       }
@@ -484,7 +512,6 @@ class _AbsenPageState extends State<AbsenPage> {
       return;
     }
 
-    // Pastikan sesi Supabase Auth masih aktif sebelum menulis ke database.
     if (Supabase.instance.client.auth.currentSession == null) {
       if (!mounted) return;
       showDialog(
@@ -545,7 +572,7 @@ class _AbsenPageState extends State<AbsenPage> {
       ]);
 
       if (mounted) {
-        Navigator.of(context).pop(); // Tutup loading dialog
+        Navigator.of(context).pop();
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('Presensi $tipe berhasil dicatat!'),
@@ -556,7 +583,7 @@ class _AbsenPageState extends State<AbsenPage> {
       }
     } catch (e) {
       if (mounted) {
-        Navigator.of(context).pop(); // Tutup loading dialog
+        Navigator.of(context).pop();
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('Gagal mencatat absen: $e'),
@@ -594,8 +621,8 @@ class _AbsenPageState extends State<AbsenPage> {
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(16),
           ),
-          title: Row(
-            children: const [
+          title: const Row(
+            children: [
               Icon(Icons.error_outline_rounded, color: Colors.red),
               SizedBox(width: 8),
               Text('Di Luar Jangkauan', style: TextStyle(fontSize: 18)),
@@ -659,7 +686,6 @@ class _AbsenPageState extends State<AbsenPage> {
                   textAlign: TextAlign.center,
                 ),
                 const SizedBox(height: 16),
-
                 _buildTipeAbsenTile(
                   icon: Icons.login_rounded,
                   color: Colors.green,
@@ -671,7 +697,6 @@ class _AbsenPageState extends State<AbsenPage> {
                   },
                 ),
                 const SizedBox(height: 10),
-
                 _buildTipeAbsenTile(
                   icon: Icons.coffee_rounded,
                   color: Colors.amber.shade700,
@@ -683,7 +708,6 @@ class _AbsenPageState extends State<AbsenPage> {
                   },
                 ),
                 const SizedBox(height: 10),
-
                 _buildTipeAbsenTile(
                   icon: Icons.directions_walk_rounded,
                   color: Colors.blue.shade700,
@@ -695,7 +719,6 @@ class _AbsenPageState extends State<AbsenPage> {
                   },
                 ),
                 const SizedBox(height: 10),
-
                 _buildTipeAbsenTile(
                   icon: Icons.logout_rounded,
                   color: Colors.red.shade700,
@@ -772,733 +795,859 @@ class _AbsenPageState extends State<AbsenPage> {
     );
   }
 
-  @override
-  Widget build(BuildContext context) {
-    final String jamMenit =
-        '${_formatDigit(_currentTime.hour)}:${_formatDigit(_currentTime.minute)}';
-    final String tanggalFormatted = _formatTanggal(_currentTime);
+  /// Tab Utama (Absen) dengan tata letak Hero Gradient Header & Overlapping Card
+  Widget _buildAbsenTab(String jamMenit, String tanggalFormatted) {
+    final double topSafePadding = MediaQuery.of(context).padding.top;
 
-    return Scaffold(
-      backgroundColor: Colors.white,
-      body: SafeArea(
-        child: Column(
+    return RefreshIndicator(
+      onRefresh: () async {
+        await _loadUserAndKantor();
+        await _loadRiwayatHariIni();
+      },
+      color: const Color(0xFF4A1010),
+      child: SingleChildScrollView(
+        physics: const AlwaysScrollableScrollPhysics(),
+        child: Stack(
           children: [
-            _buildAppHeader(),
-            Expanded(
-              child: IndexedStack(
-                index: _currentNavIndex,
+            // ==========================================================
+            // LAYER BACKGROUND GRADASI HEADER (ZIEDA BURGUNDY PALETTE)
+            // ==========================================================
+            Container(
+              height: 235 + topSafePadding,
+              width: double.infinity,
+              decoration: const BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                  colors: [
+                    Color(0xFF3A0A0A), // Deep Maroon
+                    Color(0xFF681616), // Rich Burgundy
+                    Color(0xFFA64B3A), // Warm Terracotta Accent
+                  ],
+                  stops: [0.0, 0.58, 1.0],
+                ),
+                borderRadius: BorderRadius.vertical(
+                  bottom: Radius.circular(32),
+                ),
+              ),
+              child: Stack(
                 children: [
-                  RefreshIndicator(
-                    onRefresh: () async {
-                      await _loadUserAndKantor();
-                      await _loadRiwayatHariIni();
-                    },
-                    color: const Color(0xFF4A1010),
-                    child: SingleChildScrollView(
-                      physics: const AlwaysScrollableScrollPhysics(),
-                      padding: const EdgeInsets.fromLTRB(24.0, 0.0, 24.0, 16.0),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.center,
+                  // Aksen cahaya lembut di sudut kanan bawah header
+                  Positioned(
+                    right: -30,
+                    bottom: -20,
+                    child: Container(
+                      width: 170,
+                      height: 170,
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        gradient: RadialGradient(
+                          colors: [
+                            const Color(0xFFD4A373).withValues(alpha: 0.28),
+                            Colors.transparent,
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
+                  // Aksen lingkaran halus di kiri atas
+                  Positioned(
+                    left: -40,
+                    top: -20,
+                    child: Container(
+                      width: 140,
+                      height: 140,
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        color: Colors.white.withValues(alpha: 0.04),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+
+            // ==========================================================
+            // KONTEN UTAMA DI ATAS BACKGROUND
+            // ==========================================================
+            Padding(
+              padding: EdgeInsets.fromLTRB(
+                22.0,
+                topSafePadding + 14.0,
+                22.0,
+                24.0,
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // 1. TOP UTILITY BAR (Badge Brand & Tombol Aksi)
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      // Pill Badge Brand & Cabang
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 6,
+                        ),
+                        decoration: BoxDecoration(
+                          color: Colors.white.withValues(alpha: 0.14),
+                          borderRadius: BorderRadius.circular(30),
+                          border: Border.all(
+                            color: Colors.white.withValues(alpha: 0.2),
+                          ),
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Container(
+                              width: 7,
+                              height: 7,
+                              decoration: const BoxDecoration(
+                                color: Color(0xFFE8C391),
+                                shape: BoxShape.circle,
+                              ),
+                            ),
+                            const SizedBox(width: 7),
+                            const Text(
+                              'ZIEDA ABSEN',
+                              style: TextStyle(
+                                fontSize: 11,
+                                fontWeight: FontWeight.w800,
+                                color: Colors.white,
+                                letterSpacing: 0.8,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+
+                      // Tombol Admin & Logout
+                      Row(
+                        mainAxisSize: MainAxisSize.min,
                         children: [
-                          // ==========================================
-                          // 1. KARTU JAM & TANGGAL
-                          // ==========================================
-                          Container(
-                            width: double.infinity,
-                            padding: const EdgeInsets.symmetric(
-                              vertical: 22.0,
-                              horizontal: 16.0,
+                          if (_isAdmin) ...[
+                            _buildHeroGlassAction(
+                              label: 'Admin',
+                              icon: Icons.admin_panel_settings_outlined,
+                              onTap: _openAdminPanel,
                             ),
-                            decoration: BoxDecoration(
-                              color: Colors.white,
-                              borderRadius: BorderRadius.circular(28),
-                              border: Border.all(
-                                color: const Color(0xFFE8E8E8),
-                                width: 1.5,
-                              ),
-                              boxShadow: [
-                                BoxShadow(
-                                  color: Colors.black.withValues(alpha: 0.05),
-                                  blurRadius: 16,
-                                  offset: const Offset(0, 6),
-                                ),
-                              ],
-                            ),
-                            child: Column(
-                              children: [
-                                Row(
-                                  mainAxisAlignment: MainAxisAlignment.center,
-                                  crossAxisAlignment:
-                                      CrossAxisAlignment.baseline,
-                                  textBaseline: TextBaseline.alphabetic,
-                                  children: [
-                                    Text(
-                                      jamMenit,
-                                      style: const TextStyle(
-                                        fontSize: 46,
-                                        fontWeight: FontWeight.w900,
-                                        color: Color(0xFF230505),
-                                        letterSpacing: -1,
-                                      ),
-                                    ),
-                                    const SizedBox(width: 8),
-                                    const Text(
-                                      'WIB',
-                                      style: TextStyle(
-                                        fontSize: 18,
-                                        fontWeight: FontWeight.w700,
-                                        color: Color(0xFF4A1010),
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                                const SizedBox(height: 4),
-                                Text(
-                                  tanggalFormatted,
-                                  style: const TextStyle(
-                                    fontSize: 12,
-                                    color: Color(0xFF5A3B3B),
-                                    fontWeight: FontWeight.w500,
-                                  ),
-                                ),
-                              ],
-                            ),
+                            const SizedBox(width: 8),
+                          ],
+                          _buildHeroGlassAction(
+                            label: 'Logout',
+                            icon: Icons.logout_rounded,
+                            onTap: () => logoutToLogin(context),
                           ),
+                        ],
+                      ),
+                    ],
+                  ),
 
-                          const SizedBox(height: 18),
+                  const SizedBox(height: 20),
 
-                          // ==========================================
-                          // 3. KOTAK PETA INTERAKTIF
-                          // ==========================================
-                          Container(
-                            height: 320,
-                            width: double.infinity,
-                            decoration: BoxDecoration(
-                              borderRadius: BorderRadius.circular(28),
-                              border: Border.all(
-                                color: const Color(0xFF401010),
-                                width: 2,
-                              ),
-                              boxShadow: [
-                                BoxShadow(
-                                  color: Colors.black.withValues(alpha: 0.1),
-                                  blurRadius: 16,
-                                  offset: const Offset(0, 6),
-                                ),
-                              ],
-                            ),
-                            clipBehavior: Clip.antiAlias,
-                            child: Stack(
-                              children: [
-                                _isLoadingKantor
-                                    ? const Center(
-                                        child: CircularProgressIndicator(
-                                          color: Color(0xFF4A1010),
-                                        ),
-                                      )
-                                    : FlutterMap(
-                                        mapController: _mapController,
-                                        options: MapOptions(
-                                          initialCenter: LatLng(
-                                            _latKantor,
-                                            _lonKantor,
-                                          ),
-                                          initialZoom: 16.5,
-                                          minZoom: 12,
-                                          maxZoom: 19,
-                                        ),
-                                        children: [
-                                          TileLayer(
-                                            urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
-                                            userAgentPackageName:
-                                                'com.example.zabsen',
-                                          ),
-                                          CircleLayer(
-                                            circles: [
-                                              CircleMarker(
-                                                point: LatLng(
-                                                  _latKantor,
-                                                  _lonKantor,
-                                                ),
-                                                radius: _radiusMaksimal
-                                                    .toDouble(),
-                                                useRadiusInMeter: true,
-                                                color: Colors.green.withValues(
-                                                  alpha: 0.22,
-                                                ),
-                                                borderColor: const Color(
-                                                  0xFF2E7D32,
-                                                ),
-                                                borderStrokeWidth: 2,
-                                              ),
-                                              for (final k in _listKantor)
-                                                if (k['nama'] != _namaKantor &&
-                                                    k['lat'] != null &&
-                                                    k['lng'] != null)
-                                                  CircleMarker(
-                                                    point: LatLng(
-                                                      _toDouble(k['lat']),
-                                                      _toDouble(k['lng']),
-                                                    ),
-                                                    radius: _toDouble(
-                                                      k['radius'],
-                                                      100.0,
-                                                    ),
-                                                    useRadiusInMeter: true,
-                                                    color: Colors.blue
-                                                        .withValues(
-                                                          alpha: 0.15,
-                                                        ),
-                                                    borderColor: const Color(
-                                                      0xFF1976D2,
-                                                    ),
-                                                    borderStrokeWidth: 1.5,
-                                                  ),
-                                            ],
-                                          ),
-                                          MarkerLayer(
-                                            markers: [
-                                              Marker(
-                                                point: LatLng(
-                                                  _latKantor,
-                                                  _lonKantor,
-                                                ),
-                                                width: 100,
-                                                height: 55,
-                                                child: Column(
-                                                  children: [
-                                                    Container(
-                                                      padding:
-                                                          const EdgeInsets.symmetric(
-                                                            horizontal: 6,
-                                                            vertical: 2,
-                                                          ),
-                                                      decoration: BoxDecoration(
-                                                        color: Colors.white,
-                                                        borderRadius:
-                                                            BorderRadius.circular(
-                                                              4,
-                                                            ),
-                                                        boxShadow: const [
-                                                          BoxShadow(
-                                                            color:
-                                                                Colors.black26,
-                                                            blurRadius: 4,
-                                                          ),
-                                                        ],
-                                                      ),
-                                                      child: Text(
-                                                        _namaKantor,
-                                                        style: const TextStyle(
-                                                          fontSize: 9,
-                                                          fontWeight:
-                                                              FontWeight.bold,
-                                                          color: Color(
-                                                            0xFF4A1010,
-                                                          ),
-                                                        ),
-                                                        maxLines: 1,
-                                                        overflow: TextOverflow
-                                                            .ellipsis,
-                                                      ),
-                                                    ),
-                                                    const Icon(
-                                                      Icons.storefront_rounded,
-                                                      color: Colors.green,
-                                                      size: 26,
-                                                    ),
-                                                  ],
-                                                ),
-                                              ),
-                                              if (_userPosition != null)
-                                                Marker(
-                                                  point: LatLng(
-                                                    _userPosition!.latitude,
-                                                    _userPosition!.longitude,
-                                                  ),
-                                                  width: 80,
-                                                  height: 55,
-                                                  child: Column(
-                                                    children: [
-                                                      Container(
-                                                        padding:
-                                                            const EdgeInsets.symmetric(
-                                                              horizontal: 6,
-                                                              vertical: 2,
-                                                            ),
-                                                        decoration: BoxDecoration(
-                                                          color: Colors
-                                                              .blue
-                                                              .shade700,
-                                                          borderRadius:
-                                                              BorderRadius.circular(
-                                                                4,
-                                                              ),
-                                                          boxShadow: const [
-                                                            BoxShadow(
-                                                              color: Colors
-                                                                  .black26,
-                                                              blurRadius: 4,
-                                                            ),
-                                                          ],
-                                                        ),
-                                                        child: const Text(
-                                                          'Posisi Anda',
-                                                          style: TextStyle(
-                                                            fontSize: 9,
-                                                            fontWeight:
-                                                                FontWeight.bold,
-                                                            color: Colors.white,
-                                                          ),
-                                                        ),
-                                                      ),
-                                                      const Icon(
-                                                        Icons
-                                                            .person_pin_circle_rounded,
-                                                        color:
-                                                            Colors.blueAccent,
-                                                        size: 28,
-                                                      ),
-                                                    ],
-                                                  ),
-                                                ),
-                                            ],
-                                          ),
-                                        ],
-                                      ),
-
-                                // Tombol Cari GPS
-                                Positioned(
-                                  top: 12,
-                                  right: 12,
-                                  child: Material(
-                                    color: Colors.white,
-                                    elevation: 4,
-                                    shape: const CircleBorder(),
-                                    child: InkWell(
-                                      customBorder: const CircleBorder(),
-                                      onTap: _getCurrentLocation,
-                                      child: Padding(
-                                        padding: const EdgeInsets.all(10.0),
-                                        child: _isLoadingLocation
-                                            ? const SizedBox(
-                                                width: 20,
-                                                height: 20,
-                                                child:
-                                                    CircularProgressIndicator(
-                                                      strokeWidth: 2.5,
-                                                      color: Color(0xFF4A1010),
-                                                    ),
-                                              )
-                                            : const Icon(
-                                                Icons.my_location_rounded,
-                                                color: Color(0xFF4A1010),
-                                                size: 20,
-                                              ),
-                                      ),
-                                    ),
-                                  ),
-                                ),
-
-                                // Banner Status Jarak
-                                Positioned(
-                                  bottom: 12,
-                                  left: 12,
-                                  right: 12,
-                                  child: Container(
-                                    padding: const EdgeInsets.symmetric(
-                                      horizontal: 14,
-                                      vertical: 8,
-                                    ),
-                                    decoration: BoxDecoration(
-                                      color: Colors.white.withValues(
-                                        alpha: 0.94,
-                                      ),
-                                      borderRadius: BorderRadius.circular(20),
-                                      boxShadow: const [
-                                        BoxShadow(
-                                          color: Colors.black26,
-                                          blurRadius: 8,
-                                          offset: Offset(0, 2),
-                                        ),
-                                      ],
-                                    ),
-                                    child: Row(
-                                      mainAxisAlignment:
-                                          MainAxisAlignment.center,
-                                      children: [
-                                        Icon(
-                                          _userPosition == null
-                                              ? Icons.gps_not_fixed_rounded
-                                              : (_isInsideRadius
-                                                    ? Icons.check_circle_rounded
-                                                    : Icons.cancel_rounded),
-                                          color: _userPosition == null
-                                              ? Colors.grey
-                                              : (_isInsideRadius
-                                                    ? Colors.green
-                                                    : Colors.red),
-                                          size: 18,
-                                        ),
-                                        const SizedBox(width: 8),
-                                        Flexible(
-                                          child: Text(
-                                            _userPosition == null
-                                                ? 'Mencari lokasi GPS Anda...'
-                                                : 'Jarak: $_distanceToOffice m dari $_namaKantor (${_isInsideRadius ? 'Dalam Radius' : 'Di Luar Radius'})',
-                                            style: TextStyle(
-                                              fontSize: 11,
-                                              fontWeight: FontWeight.bold,
-                                              color: _userPosition == null
-                                                  ? Colors.black87
-                                                  : (_isInsideRadius
-                                                        ? Colors.green.shade800
-                                                        : Colors.red.shade800),
-                                            ),
-                                            maxLines: 1,
-                                            overflow: TextOverflow.ellipsis,
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                  ),
-                                ),
-                              ],
-                            ),
+                  // 2. GREETING TIPOGRAFI KONTRAS (Light + Bold)
+                  RichText(
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    text: TextSpan(
+                      style: const TextStyle(
+                        fontSize: 23,
+                        color: Colors.white,
+                        letterSpacing: -0.3,
+                      ),
+                      children: [
+                        TextSpan(
+                          text: 'Halo, ',
+                          style: TextStyle(
+                            fontWeight: FontWeight.w400,
+                            color: Colors.white.withValues(alpha: 0.88),
                           ),
+                        ),
+                        TextSpan(
+                          text: _userName,
+                          style: const TextStyle(
+                            fontWeight: FontWeight.w800,
+                            color: Colors.white,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    tanggalFormatted,
+                    style: TextStyle(
+                      fontSize: 13.5,
+                      fontWeight: FontWeight.w400,
+                      color: Colors.white.withValues(alpha: 0.82),
+                      letterSpacing: 0.1,
+                    ),
+                  ),
 
-                          const SizedBox(height: 20),
+                  const SizedBox(height: 22),
 
-                          // ==========================================
-                          // 4. TOMBOL ABSEN
-                          // ==========================================
-                          GestureDetector(
-                            onTap: _handleAbsenClick,
-                            child: Container(
-                              height: 58,
-                              width: double.infinity,
-                              decoration: BoxDecoration(
-                                borderRadius: BorderRadius.circular(40),
-                                gradient: const LinearGradient(
-                                  begin: Alignment.topCenter,
-                                  end: Alignment.bottomCenter,
-                                  colors: [
-                                    Color(0xFF3B0B0B),
-                                    Color(0xFF1E0404),
-                                  ],
+                  // 3. OVERLAPPING HERO CARD: JAM DIGITAL & STATUS LOKASI
+                  Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.symmetric(
+                      vertical: 18.0,
+                      horizontal: 20.0,
+                    ),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(24),
+                      boxShadow: [
+                        BoxShadow(
+                          color: const Color(0xFF2D0707).withValues(alpha: 0.10),
+                          blurRadius: 24,
+                          offset: const Offset(0, 10),
+                        ),
+                      ],
+                    ),
+                    child: Row(
+                      children: [
+                        // Kolom Kiri: Jam Realtime
+                        Expanded(
+                          flex: 5,
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                'WAKTU SAAT INI',
+                                style: TextStyle(
+                                  fontSize: 10,
+                                  fontWeight: FontWeight.w700,
+                                  color: Colors.grey.shade500,
+                                  letterSpacing: 0.8,
                                 ),
-                                boxShadow: [
-                                  BoxShadow(
-                                    color: const Color(0xFF2D0707)
-                                        .withValues(alpha: 0.4),
-                                    blurRadius: 14,
-                                    offset: const Offset(0, 6),
-                                  ),
-                                ],
                               ),
-                              child: Row(
-                                mainAxisAlignment: MainAxisAlignment.center,
+                              const SizedBox(height: 4),
+                              Row(
+                                crossAxisAlignment: CrossAxisAlignment.baseline,
+                                textBaseline: TextBaseline.alphabetic,
                                 children: [
-                                  Container(
-                                    width: 30,
-                                    height: 30,
-                                    decoration: BoxDecoration(
-                                      shape: BoxShape.circle,
-                                      border: Border.all(
-                                        color: Colors.white,
-                                        width: 2.2,
-                                      ),
-                                    ),
-                                    child: Center(
-                                      child: Container(
-                                        width: 12,
-                                        height: 12,
-                                        decoration: const BoxDecoration(
-                                          shape: BoxShape.circle,
-                                          color: Colors.white,
-                                        ),
-                                      ),
+                                  Text(
+                                    jamMenit,
+                                    style: const TextStyle(
+                                      fontSize: 36,
+                                      fontWeight: FontWeight.w900,
+                                      color: Color(0xFF230505),
+                                      letterSpacing: -1.0,
+                                      height: 1.0,
                                     ),
                                   ),
-                                  const SizedBox(width: 12),
+                                  const SizedBox(width: 6),
                                   const Text(
-                                    'Absen',
+                                    'WIB',
                                     style: TextStyle(
-                                      fontSize: 18,
-                                      fontWeight: FontWeight.bold,
-                                      color: Colors.white,
-                                      letterSpacing: 0.5,
+                                      fontSize: 13,
+                                      fontWeight: FontWeight.w800,
+                                      color: Color(0xFF681616),
                                     ),
                                   ),
                                 ],
                               ),
-                            ),
+                            ],
                           ),
+                        ),
 
-                          const SizedBox(height: 22),
+                        // Garis Pemisah Vertikal Tipis
+                        Container(
+                          height: 46,
+                          width: 1,
+                          color: const Color(0xFFECE8E6),
+                          margin: const EdgeInsets.symmetric(horizontal: 14),
+                        ),
 
-                          // ==========================================
-                          // 5. RIWAYAT ABSEN HARI INI
-                          // ==========================================
-                          Container(
-                            width: double.infinity,
-                            padding: const EdgeInsets.all(20.0),
-                            decoration: BoxDecoration(
-                              color: Colors.white,
-                              borderRadius: BorderRadius.circular(28),
-                              border: Border.all(
-                                color: const Color(0xFFE8E8E8),
-                                width: 1.5,
+                        // Kolom Kanan: Info Cabang & Status Radius
+                        Expanded(
+                          flex: 5,
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Container(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 8,
+                                  vertical: 3,
+                                ),
+                                decoration: BoxDecoration(
+                                  color: _userPosition == null
+                                      ? Colors.grey.shade100
+                                      : (_isInsideRadius
+                                          ? const Color(0xFFE8F5E9)
+                                          : const Color(0xFFFFEBEE)),
+                                  borderRadius: BorderRadius.circular(8),
+                                ),
+                                child: Text(
+                                  _userPosition == null
+                                      ? 'Mencari GPS...'
+                                      : (_isInsideRadius
+                                          ? 'Dalam Radius'
+                                          : 'Di Luar Radius'),
+                                  style: TextStyle(
+                                    fontSize: 10.5,
+                                    fontWeight: FontWeight.w700,
+                                    color: _userPosition == null
+                                        ? Colors.grey.shade700
+                                        : (_isInsideRadius
+                                            ? const Color(0xFF2E7D32)
+                                            : const Color(0xFFC62828)),
+                                  ),
+                                ),
                               ),
-                              boxShadow: [
-                                BoxShadow(
-                                  color: Colors.black.withValues(alpha: 0.05),
-                                  blurRadius: 16,
-                                  offset: const Offset(0, 6),
+                              const SizedBox(height: 6),
+                              Text(
+                                _namaKantor,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: const TextStyle(
+                                  fontSize: 13.5,
+                                  fontWeight: FontWeight.w700,
+                                  color: Color(0xFF1E1E1E),
                                 ),
-                              ],
-                            ),
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                // Header Card Riwayat
-                                Row(
-                                  mainAxisAlignment:
-                                      MainAxisAlignment.spaceBetween,
-                                  children: [
-                                    Row(
-                                      children: [
-                                        Container(
-                                          padding: const EdgeInsets.all(8),
-                                          decoration: BoxDecoration(
-                                            color: const Color(0xFF500808)
-                                                .withValues(alpha: 0.08),
-                                            borderRadius: BorderRadius.circular(
-                                              10,
-                                            ),
-                                          ),
-                                          child: const Icon(
-                                            Icons.history_rounded,
-                                            color: Color(0xFF500808),
-                                            size: 20,
-                                          ),
-                                        ),
-                                        const SizedBox(width: 10),
-                                        const Text(
-                                          'Riwayat Absen Hari Ini',
-                                          style: TextStyle(
-                                            fontSize: 16,
-                                            fontWeight: FontWeight.bold,
-                                            color: Color(0xFF1E1E1E),
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                    IconButton(
-                                      onPressed: _loadRiwayatHariIni,
-                                      icon: const Icon(
-                                        Icons.refresh_rounded,
-                                        size: 20,
-                                        color: Color(0xFF500808),
-                                      ),
-                                      tooltip: 'Segarkan Riwayat',
-                                      padding: EdgeInsets.zero,
-                                      constraints: const BoxConstraints(),
-                                    ),
-                                  ],
+                              ),
+                              const SizedBox(height: 2),
+                              Text(
+                                _userPosition == null
+                                    ? 'Menghitung jarak...'
+                                    : 'Jarak $_distanceToOffice m (Maks $_radiusMaksimal m)',
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: TextStyle(
+                                  fontSize: 11,
+                                  color: Colors.grey.shade600,
                                 ),
-                                const SizedBox(height: 16),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
 
-                                // Konten Tabel / List
-                                if (_isLoadingRiwayat)
-                                  const Center(
-                                    child: Padding(
-                                      padding: EdgeInsets.symmetric(
-                                        vertical: 24.0,
+                  const SizedBox(height: 22),
+
+                  // 4. SECTION HEADER PETA
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      const Text(
+                        'Lokasi Presensi',
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w800,
+                          color: Color(0xFF1E1E1E),
+                          letterSpacing: -0.2,
+                        ),
+                      ),
+                      GestureDetector(
+                        onTap: _getCurrentLocation,
+                        child: Text(
+                          _isLoadingLocation ? 'Memperbarui...' : 'Perbarui GPS',
+                          style: const TextStyle(
+                            fontSize: 12.5,
+                            fontWeight: FontWeight.w700,
+                            color: Color(0xFF681616),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 12),
+
+                  // 5. KOTAK PETA INTERAKTIF
+                  Container(
+                    height: 280,
+                    width: double.infinity,
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(24),
+                      border: Border.all(
+                        color: const Color(0xFFE6DFDC),
+                        width: 1.5,
+                      ),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withValues(alpha: 0.05),
+                          blurRadius: 16,
+                          offset: const Offset(0, 6),
+                        ),
+                      ],
+                    ),
+                    clipBehavior: Clip.antiAlias,
+                    child: Stack(
+                      children: [
+                        _isLoadingKantor
+                            ? const Center(
+                                child: CircularProgressIndicator(
+                                  color: Color(0xFF4A1010),
+                                ),
+                              )
+                            : FlutterMap(
+                                mapController: _mapController,
+                                options: MapOptions(
+                                  initialCenter: LatLng(
+                                    _latKantor,
+                                    _lonKantor,
+                                  ),
+                                  initialZoom: 16.5,
+                                  minZoom: 12,
+                                  maxZoom: 19,
+                                ),
+                                children: [
+                                  TileLayer(
+                                    urlTemplate:
+                                        'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+                                    userAgentPackageName:
+                                        'com.example.zabsen',
+                                  ),
+                                  CircleLayer(
+                                    circles: [
+                                      CircleMarker(
+                                        point: LatLng(
+                                          _latKantor,
+                                          _lonKantor,
+                                        ),
+                                        radius: _radiusMaksimal.toDouble(),
+                                        useRadiusInMeter: true,
+                                        color: Colors.green.withValues(
+                                          alpha: 0.22,
+                                        ),
+                                        borderColor: const Color(0xFF2E7D32),
+                                        borderStrokeWidth: 2,
                                       ),
-                                      child: CircularProgressIndicator(
-                                        color: Color(0xFF500808),
-                                        strokeWidth: 2.5,
-                                      ),
-                                    ),
-                                  )
-                                else if (_riwayatHariIni.isEmpty)
-                                  Center(
-                                    child: Padding(
-                                      padding: const EdgeInsets.symmetric(
-                                        vertical: 20.0,
-                                      ),
-                                      child: Column(
-                                        children: const [
-                                          Icon(
-                                            Icons.event_available_outlined,
-                                            size: 40,
-                                            color: Color(0xFFB0B0B0),
-                                          ),
-                                          SizedBox(height: 8),
-                                          Text(
-                                            'Belum ada riwayat absensi hari ini',
-                                            style: TextStyle(
-                                              fontSize: 13,
-                                              color: Color(0xFF757575),
-                                              fontWeight: FontWeight.w500,
+                                      for (final k in _listKantor)
+                                        if (k['nama'] != _namaKantor &&
+                                            k['lat'] != null &&
+                                            k['lng'] != null)
+                                          CircleMarker(
+                                            point: LatLng(
+                                              _toDouble(k['lat']),
+                                              _toDouble(k['lng']),
                                             ),
-                                          ),
-                                        ],
-                                      ),
-                                    ),
-                                  )
-                                else
-                                  ListView.separated(
-                                    shrinkWrap: true,
-                                    physics:
-                                        const NeverScrollableScrollPhysics(),
-                                    itemCount: _riwayatHariIni.length,
-                                    separatorBuilder: (_, _) => const Divider(
-                                      height: 20,
-                                      color: Color(0xFFF2F2F2),
-                                    ),
-                                    itemBuilder: (context, index) {
-                                      final item = _riwayatHariIni[index];
-                                      final tipe =
-                                          item['tipe_absen']?.toString() ??
-                                          'Absen';
-                                      final waktu =
-                                          item['waktu']?.toString() ?? '-';
-                                      final status =
-                                          item['status']?.toString() ?? 'Hadir';
-                                      final lokasi =
-                                          item['lokasi']?.toString() ?? '';
-
-                                      final isPulang =
-                                          tipe.toLowerCase().contains(
-                                            'pulang',
-                                          ) ||
-                                          tipe.toLowerCase().contains(
-                                            'checkout',
-                                          );
-                                      final isIstirahat = tipe
-                                          .toLowerCase()
-                                          .contains('istirahat');
-
-                                      Color iconBg = Colors.green.shade50;
-                                      Color iconColor = Colors.green.shade700;
-                                      IconData iconData = Icons.login_rounded;
-
-                                      if (isPulang) {
-                                        iconBg = Colors.red.shade50;
-                                        iconColor = Colors.red.shade700;
-                                        iconData = Icons.logout_rounded;
-                                      } else if (isIstirahat) {
-                                        iconBg = Colors.amber.shade50;
-                                        iconColor = Colors.amber.shade800;
-                                        iconData = Icons.coffee_rounded;
-                                      }
-
-                                      return Row(
-                                        children: [
-                                          Container(
-                                            width: 40,
-                                            height: 40,
-                                            decoration: BoxDecoration(
-                                              color: iconBg,
-                                              shape: BoxShape.circle,
+                                            radius: _toDouble(
+                                              k['radius'],
+                                              100.0,
                                             ),
-                                            child: Icon(
-                                              iconData,
-                                              color: iconColor,
-                                              size: 20,
+                                            useRadiusInMeter: true,
+                                            color: Colors.blue.withValues(
+                                              alpha: 0.15,
                                             ),
-                                          ),
-                                          const SizedBox(width: 12),
-                                          Expanded(
-                                            child: Column(
-                                              crossAxisAlignment:
-                                                  CrossAxisAlignment.start,
-                                              children: [
-                                                Text(
-                                                  tipe,
-                                                  style: const TextStyle(
-                                                    fontSize: 14,
-                                                    fontWeight: FontWeight.w700,
-                                                    color: Color(0xFF1E1E1E),
-                                                  ),
-                                                ),
-                                                if (lokasi.isNotEmpty)
-                                                  Text(
-                                                    lokasi,
-                                                    style: const TextStyle(
-                                                      fontSize: 11,
-                                                      color: Color(0xFF888888),
-                                                    ),
-                                                    maxLines: 1,
-                                                    overflow:
-                                                        TextOverflow.ellipsis,
-                                                  ),
-                                              ],
+                                            borderColor: const Color(
+                                              0xFF1976D2,
                                             ),
+                                            borderStrokeWidth: 1.5,
                                           ),
-                                          Column(
-                                            crossAxisAlignment:
-                                                CrossAxisAlignment.end,
-                                            children: [
-                                              Text(
-                                                waktu,
-                                                style: const TextStyle(
-                                                  fontSize: 13,
-                                                  fontWeight: FontWeight.bold,
-                                                  color: Color(0xFF230505),
-                                                ),
+                                    ],
+                                  ),
+                                  MarkerLayer(
+                                    markers: [
+                                      Marker(
+                                        point: LatLng(
+                                          _latKantor,
+                                          _lonKantor,
+                                        ),
+                                        width: 100,
+                                        height: 55,
+                                        child: Column(
+                                          children: [
+                                            Container(
+                                              padding:
+                                                  const EdgeInsets.symmetric(
+                                                horizontal: 6,
+                                                vertical: 2,
                                               ),
-                                              const SizedBox(height: 2),
+                                              decoration: BoxDecoration(
+                                                color: Colors.white,
+                                                borderRadius:
+                                                    BorderRadius.circular(4),
+                                                boxShadow: const [
+                                                  BoxShadow(
+                                                    color: Colors.black26,
+                                                    blurRadius: 4,
+                                                  ),
+                                                ],
+                                              ),
+                                              child: Text(
+                                                _namaKantor,
+                                                style: const TextStyle(
+                                                  fontSize: 9,
+                                                  fontWeight: FontWeight.bold,
+                                                  color: Color(0xFF4A1010),
+                                                ),
+                                                maxLines: 1,
+                                                overflow: TextOverflow.ellipsis,
+                                              ),
+                                            ),
+                                            const Icon(
+                                              Icons.storefront_rounded,
+                                              color: Colors.green,
+                                              size: 26,
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+                                      if (_userPosition != null)
+                                        Marker(
+                                          point: LatLng(
+                                            _userPosition!.latitude,
+                                            _userPosition!.longitude,
+                                          ),
+                                          width: 80,
+                                          height: 55,
+                                          child: Column(
+                                            children: [
                                               Container(
                                                 padding:
                                                     const EdgeInsets.symmetric(
-                                                      horizontal: 8,
-                                                      vertical: 2,
-                                                    ),
-                                                decoration: BoxDecoration(
-                                                  color:
-                                                      status.toLowerCase() ==
-                                                          'terlambat'
-                                                      ? Colors.amber.shade100
-                                                      : Colors.green.shade100,
-                                                  borderRadius:
-                                                      BorderRadius.circular(12),
+                                                  horizontal: 6,
+                                                  vertical: 2,
                                                 ),
-                                                child: Text(
-                                                  status,
+                                                decoration: BoxDecoration(
+                                                  color: Colors.blue.shade700,
+                                                  borderRadius:
+                                                      BorderRadius.circular(4),
+                                                  boxShadow: const [
+                                                    BoxShadow(
+                                                      color: Colors.black26,
+                                                      blurRadius: 4,
+                                                    ),
+                                                  ],
+                                                ),
+                                                child: const Text(
+                                                  'Posisi Anda',
                                                   style: TextStyle(
-                                                    fontSize: 10,
+                                                    fontSize: 9,
                                                     fontWeight: FontWeight.bold,
-                                                    color:
-                                                        status.toLowerCase() ==
-                                                            'terlambat'
-                                                        ? Colors.amber.shade900
-                                                        : Colors.green.shade800,
+                                                    color: Colors.white,
                                                   ),
                                                 ),
                                               ),
+                                              const Icon(
+                                                Icons
+                                                    .person_pin_circle_rounded,
+                                                color: Colors.blueAccent,
+                                                size: 28,
+                                              ),
                                             ],
                                           ),
-                                        ],
-                                      );
-                                    },
+                                        ),
+                                    ],
                                   ),
-                              ],
+                                ],
+                              ),
+
+                        // Tombol Cari GPS Mengambang
+                        Positioned(
+                          top: 12,
+                          right: 12,
+                          child: Material(
+                            color: Colors.white,
+                            elevation: 3,
+                            shape: const CircleBorder(),
+                            child: InkWell(
+                              customBorder: const CircleBorder(),
+                              onTap: _getCurrentLocation,
+                              child: Padding(
+                                padding: const EdgeInsets.all(10.0),
+                                child: _isLoadingLocation
+                                    ? const SizedBox(
+                                        width: 18,
+                                        height: 18,
+                                        child: CircularProgressIndicator(
+                                          strokeWidth: 2.2,
+                                          color: Color(0xFF4A1010),
+                                        ),
+                                      )
+                                    : const Icon(
+                                        Icons.my_location_rounded,
+                                        color: Color(0xFF4A1010),
+                                        size: 18,
+                                      ),
+                              ),
                             ),
                           ),
+                        ),
+                      ],
+                    ),
+                  ),
 
-                          const SizedBox(height: 20),
+                  const SizedBox(height: 18),
+
+                  // 6. TOMBOL ABSEN UTAMA
+                  GestureDetector(
+                    onTap: _handleAbsenClick,
+                    child: Container(
+                      height: 56,
+                      width: double.infinity,
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(18),
+                        gradient: const LinearGradient(
+                          begin: Alignment.topLeft,
+                          end: Alignment.bottomRight,
+                          colors: [
+                            Color(0xFF5A1212),
+                            Color(0xFF2B0606),
+                          ],
+                        ),
+                        boxShadow: [
+                          BoxShadow(
+                            color:
+                                const Color(0xFF3A0A0A).withValues(alpha: 0.32),
+                            blurRadius: 16,
+                            offset: const Offset(0, 6),
+                          ),
+                        ],
+                      ),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Container(
+                            width: 28,
+                            height: 28,
+                            decoration: BoxDecoration(
+                              shape: BoxShape.circle,
+                              border: Border.all(
+                                color: Colors.white,
+                                width: 2.0,
+                              ),
+                            ),
+                            child: Center(
+                              child: Container(
+                                width: 11,
+                                height: 11,
+                                decoration: const BoxDecoration(
+                                  shape: BoxShape.circle,
+                                  color: Colors.white,
+                                ),
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          const Text(
+                            'Catat Kehadiran Sekarang',
+                            style: TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.w700,
+                              color: Colors.white,
+                              letterSpacing: 0.2,
+                            ),
+                          ),
                         ],
                       ),
                     ),
                   ),
-                  IzinPage(key: _izinKey),
-                  KalenderPage(key: _kalenderKey),
-                  ProfilePage(
-                    key: _profileKey,
-                    onUserUpdated: _applyUserUpdate,
+
+                  const SizedBox(height: 24),
+
+                  // 7. SECTION HEADER RIWAYAT ABSEN
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      const Text(
+                        'Riwayat Absen Hari Ini',
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w800,
+                          color: Color(0xFF1E1E1E),
+                          letterSpacing: -0.2,
+                        ),
+                      ),
+                      GestureDetector(
+                        onTap: _loadRiwayatHariIni,
+                        child: const Text(
+                          'Segarkan',
+                          style: TextStyle(
+                            fontSize: 12.5,
+                            fontWeight: FontWeight.w700,
+                            color: Color(0xFF681616),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 12),
+
+                  // 8. KARTU RIWAYAT ABSEN HARI INI
+                  Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.all(18.0),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(24),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withValues(alpha: 0.04),
+                          blurRadius: 16,
+                          offset: const Offset(0, 6),
+                        ),
+                      ],
+                    ),
+                    child: _isLoadingRiwayat
+                        ? const Center(
+                            child: Padding(
+                              padding: EdgeInsets.symmetric(vertical: 24.0),
+                              child: CircularProgressIndicator(
+                                color: Color(0xFF500808),
+                                strokeWidth: 2.5,
+                              ),
+                            ),
+                          )
+                        : _riwayatHariIni.isEmpty
+                            ? Center(
+                                child: Padding(
+                                  padding: const EdgeInsets.symmetric(
+                                    vertical: 18.0,
+                                  ),
+                                  child: Column(
+                                    children: const [
+                                      Icon(
+                                        Icons.event_available_outlined,
+                                        size: 38,
+                                        color: Color(0xFFB8B0AD),
+                                      ),
+                                      SizedBox(height: 8),
+                                      Text(
+                                        'Belum ada riwayat absensi hari ini',
+                                        style: TextStyle(
+                                          fontSize: 13,
+                                          color: Color(0xFF757575),
+                                          fontWeight: FontWeight.w500,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              )
+                            : ListView.separated(
+                                shrinkWrap: true,
+                                physics: const NeverScrollableScrollPhysics(),
+                                itemCount: _riwayatHariIni.length,
+                                separatorBuilder: (_, __) => const Divider(
+                                  height: 20,
+                                  color: Color(0xFFF3EFEF),
+                                ),
+                                itemBuilder: (context, index) {
+                                  final item = _riwayatHariIni[index];
+                                  final tipe =
+                                      item['tipe_absen']?.toString() ?? 'Absen';
+                                  final waktu =
+                                      item['waktu']?.toString() ?? '-';
+                                  final status =
+                                      item['status']?.toString() ?? 'Hadir';
+                                  final lokasi =
+                                      item['lokasi']?.toString() ?? '';
+
+                                  final isPulang =
+                                      tipe.toLowerCase().contains('pulang') ||
+                                          tipe
+                                              .toLowerCase()
+                                              .contains('checkout');
+                                  final isIstirahat =
+                                      tipe.toLowerCase().contains('istirahat');
+
+                                  Color iconBg = Colors.green.shade50;
+                                  Color iconColor = Colors.green.shade700;
+                                  IconData iconData = Icons.login_rounded;
+
+                                  if (isPulang) {
+                                    iconBg = Colors.red.shade50;
+                                    iconColor = Colors.red.shade700;
+                                    iconData = Icons.logout_rounded;
+                                  } else if (isIstirahat) {
+                                    iconBg = Colors.amber.shade50;
+                                    iconColor = Colors.amber.shade800;
+                                    iconData = Icons.coffee_rounded;
+                                  }
+
+                                  return Row(
+                                    children: [
+                                      Container(
+                                        width: 42,
+                                        height: 42,
+                                        decoration: BoxDecoration(
+                                          color: iconBg,
+                                          borderRadius:
+                                              BorderRadius.circular(14),
+                                        ),
+                                        child: Icon(
+                                          iconData,
+                                          color: iconColor,
+                                          size: 20,
+                                        ),
+                                      ),
+                                      const SizedBox(width: 12),
+                                      Expanded(
+                                        child: Column(
+                                          crossAxisAlignment:
+                                              CrossAxisAlignment.start,
+                                          children: [
+                                            Text(
+                                              tipe,
+                                              style: const TextStyle(
+                                                fontSize: 14,
+                                                fontWeight: FontWeight.w700,
+                                                color: Color(0xFF1E1E1E),
+                                              ),
+                                            ),
+                                            if (lokasi.isNotEmpty)
+                                              Text(
+                                                lokasi,
+                                                style: const TextStyle(
+                                                  fontSize: 11,
+                                                  color: Color(0xFF888888),
+                                                ),
+                                                maxLines: 1,
+                                                overflow: TextOverflow.ellipsis,
+                                              ),
+                                          ],
+                                        ),
+                                      ),
+                                      Column(
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.end,
+                                        children: [
+                                          Text(
+                                            waktu,
+                                            style: const TextStyle(
+                                              fontSize: 13.5,
+                                              fontWeight: FontWeight.w800,
+                                              color: Color(0xFF230505),
+                                            ),
+                                          ),
+                                          const SizedBox(height: 3),
+                                          Container(
+                                            padding: const EdgeInsets.symmetric(
+                                              horizontal: 8,
+                                              vertical: 2,
+                                            ),
+                                            decoration: BoxDecoration(
+                                              color: status.toLowerCase() ==
+                                                      'terlambat'
+                                                  ? Colors.amber.shade100
+                                                  : Colors.green.shade100,
+                                              borderRadius:
+                                                  BorderRadius.circular(8),
+                                            ),
+                                            child: Text(
+                                              status,
+                                              style: TextStyle(
+                                                fontSize: 10,
+                                                fontWeight: FontWeight.w700,
+                                                color: status.toLowerCase() ==
+                                                        'terlambat'
+                                                    ? Colors.amber.shade900
+                                                    : Colors.green.shade800,
+                                              ),
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ],
+                                  );
+                                },
+                              ),
                   ),
                 ],
               ),
@@ -1506,9 +1655,46 @@ class _AbsenPageState extends State<AbsenPage> {
           ],
         ),
       ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final String jamMenit =
+        '${_formatDigit(_currentTime.hour)}:${_formatDigit(_currentTime.minute)}';
+    final String tanggalFormatted = _formatTanggal(_currentTime);
+
+    return Scaffold(
+      backgroundColor: _currentNavIndex == 0
+          ? const Color(0xFFF7F5F4)
+          : Colors.white,
+      body: Column(
+        children: [
+          // Header standar hanya ditampilkan untuk tab selain Absen (Izin, Kalender, Profil)
+          if (_currentNavIndex != 0)
+            SafeArea(
+              bottom: false,
+              child: _buildStandardHeader(),
+            ),
+          Expanded(
+            child: IndexedStack(
+              index: _currentNavIndex,
+              children: [
+                _buildAbsenTab(jamMenit, tanggalFormatted),
+                IzinPage(key: _izinKey),
+                KalenderPage(key: _kalenderKey),
+                ProfilePage(
+                  key: _profileKey,
+                  onUserUpdated: _applyUserUpdate,
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
 
       // ==========================================
-      // 6. BOTTOM NAVIGATION BAR
+      // BOTTOM NAVIGATION BAR
       // ==========================================
       bottomNavigationBar: Container(
         decoration: const BoxDecoration(
@@ -1522,17 +1708,12 @@ class _AbsenPageState extends State<AbsenPage> {
               _currentNavIndex = index;
             });
 
-            // Muat ulang profil setiap kali tab Profil dibuka.
             if (index == 3) {
               _profileKey.currentState?.reload();
             }
-
-            // Muat ulang konfigurasi & sisa cuti saat tab Izin dibuka.
             if (index == 1) {
               _izinKey.currentState?.reload();
             }
-
-            // Muat ulang absensi & cuti saat tab Kalender dibuka.
             if (index == 2) {
               _kalenderKey.currentState?.reload();
             }
@@ -1540,7 +1721,7 @@ class _AbsenPageState extends State<AbsenPage> {
           type: BottomNavigationBarType.fixed,
           backgroundColor: Colors.white,
           elevation: 0,
-          selectedItemColor: Colors.black,
+          selectedItemColor: const Color(0xFF4A1010),
           unselectedItemColor: const Color(0xFF6E6E6E),
           selectedLabelStyle: const TextStyle(
             fontWeight: FontWeight.w700,
