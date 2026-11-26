@@ -1,3 +1,4 @@
+import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
@@ -415,6 +416,7 @@ class KalenderPageState extends State<KalenderPage> {
                             fontFamily: _primaryFont,
                             fontSize: 15,
                             fontWeight: FontWeight.w800,
+                            fontVariations: [FontVariation('wght', 800)],
                             color: Colors.white,
                             letterSpacing: 1.4,
                           ),
@@ -468,6 +470,7 @@ class KalenderPageState extends State<KalenderPage> {
                             style: TextStyle(
                               fontFamily: _primaryFont,
                               fontWeight: FontWeight.w800,
+                              fontVariations: [FontVariation('wght', 800)],
                               color: Colors.white,
                             ),
                           ),
@@ -577,6 +580,7 @@ class KalenderPageState extends State<KalenderPage> {
                               fontFamily: _primaryFont,
                               fontSize: 18,
                               fontWeight: FontWeight.w800,
+                              fontVariations: [FontVariation('wght', 800)],
                               color: _kMaroonDeep,
                               letterSpacing: -0.4,
                               height: 1.1,
@@ -688,6 +692,7 @@ class KalenderPageState extends State<KalenderPage> {
               fontFamily: _primaryFont,
               fontSize: 14,
               fontWeight: FontWeight.w800,
+              fontVariations: [FontVariation('wght', 800)],
               color: fg,
               height: 1.0,
               fontFeatures: const [FontFeature.tabularFigures()],
@@ -735,6 +740,7 @@ class KalenderPageState extends State<KalenderPage> {
               fontFamily: _primaryFont,
               fontSize: 16,
               fontWeight: FontWeight.w700,
+              fontVariations: [FontVariation('wght', 700)],
               color: _kTextPrimary,
             ),
           ),
@@ -768,6 +774,7 @@ class KalenderPageState extends State<KalenderPage> {
                   fontFamily: _primaryFont,
                   fontSize: 14,
                   fontWeight: FontWeight.w700,
+                  fontVariations: [FontVariation('wght', 700)],
                   color: Colors.white,
                 ),
               ),
@@ -803,6 +810,7 @@ class KalenderPageState extends State<KalenderPage> {
                 fontFamily: _primaryFont,
                 fontSize: 16,
                 fontWeight: FontWeight.w700,
+                fontVariations: [FontVariation('wght', 700)],
                 color: _kTextPrimary,
                 letterSpacing: -0.2,
               ),
@@ -816,6 +824,7 @@ class KalenderPageState extends State<KalenderPage> {
                     fontFamily: _primaryFont,
                     fontSize: 12.5,
                     fontWeight: FontWeight.w700,
+                    fontVariations: [FontVariation('wght', 700)],
                     color: _kBurgundy,
                   ),
                 ),
@@ -864,6 +873,7 @@ class KalenderPageState extends State<KalenderPage> {
                             fontFamily: _primaryFont,
                             fontSize: 11.5,
                             fontWeight: FontWeight.w700,
+                            fontVariations: [FontVariation('wght', 700)],
                             color: index == 0
                                 ? const Color(0xFFC62828)
                                 : index == 6
@@ -1087,6 +1097,7 @@ class KalenderPageState extends State<KalenderPage> {
                     fontFamily: _primaryFont,
                     fontSize: 17,
                     fontWeight: FontWeight.w800,
+                    fontVariations: [FontVariation('wght', 800)],
                     color: _kMaroonDeep,
                     letterSpacing: -0.2,
                   ),
@@ -1131,6 +1142,7 @@ class KalenderPageState extends State<KalenderPage> {
                                   fontFamily: _primaryFont,
                                   fontSize: 13,
                                   fontWeight: FontWeight.w700,
+                                  fontVariations: [FontVariation('wght', 700)],
                                   color: _kCutiFg,
                                 ),
                               ),
@@ -1186,6 +1198,7 @@ class KalenderPageState extends State<KalenderPage> {
                           fontFamily: _primaryFont,
                           fontSize: 14.5,
                           fontWeight: FontWeight.w700,
+                          fontVariations: [FontVariation('wght', 700)],
                           color: Colors.white,
                         ),
                       ),
@@ -1289,6 +1302,7 @@ class KalenderPageState extends State<KalenderPage> {
                     fontFamily: _primaryFont,
                     fontSize: 14,
                     fontWeight: FontWeight.w700,
+                    fontVariations: [FontVariation('wght', 700)],
                     color: _kTextPrimary,
                   ),
                 ),
@@ -1318,6 +1332,7 @@ class KalenderPageState extends State<KalenderPage> {
                 fontFamily: _primaryFont,
                 fontSize: 10.5,
                 fontWeight: FontWeight.w700,
+                fontVariations: [FontVariation('wght', 700)],
                 color: fg,
               ),
             ),

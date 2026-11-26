@@ -1,3 +1,4 @@
+import 'dart:ui';
 import 'dart:async';
 import 'dart:convert';
 
@@ -218,6 +219,7 @@ class _AbsenPageState extends State<AbsenPage> {
               color: Colors.white,
               fontSize: 12,
               fontWeight: FontWeight.w700,
+              fontVariations: [FontVariation('wght', 700)],
             ),
           ),
         ),
@@ -280,6 +282,7 @@ class _AbsenPageState extends State<AbsenPage> {
                     fontFamily: _primaryFont,
                     fontSize: 20,
                     fontWeight: FontWeight.w800,
+                    fontVariations: [FontVariation('wght', 800)],
                     color: Color(0xFF4A1010),
                     letterSpacing: 0.6,
                   ),
@@ -693,6 +696,7 @@ class _AbsenPageState extends State<AbsenPage> {
                     fontFamily: _primaryFont,
                     fontSize: 18,
                     fontWeight: FontWeight.w700,
+                    fontVariations: [FontVariation('wght', 700)],
                     color: Color(0xFF1E1E1E),
                   ),
                   textAlign: TextAlign.center,
@@ -784,6 +788,7 @@ class _AbsenPageState extends State<AbsenPage> {
                       fontFamily: _primaryFont,
                       fontSize: 14,
                       fontWeight: FontWeight.w700,
+                      fontVariations: [FontVariation('wght', 700)],
                       color: Color(0xFF1E1E1E),
                     ),
                   ),
@@ -886,6 +891,7 @@ class _AbsenPageState extends State<AbsenPage> {
                           fontFamily: _primaryFont,
                           fontSize: 15,
                           fontWeight: FontWeight.w800,
+                          fontVariations: [FontVariation('wght', 800)],
                           color: Colors.white,
                           letterSpacing: 1.4,
                         ),
@@ -934,6 +940,7 @@ class _AbsenPageState extends State<AbsenPage> {
                           style: const TextStyle(
                             fontFamily: _primaryFont,
                             fontWeight: FontWeight.w800,
+                            fontVariations: [FontVariation('wght', 800)],
                             color: Colors.white,
                           ),
                         ),
@@ -996,6 +1003,7 @@ class _AbsenPageState extends State<AbsenPage> {
                                       fontFamily: _primaryFont,
                                       fontSize: 40,
                                       fontWeight: FontWeight.w800,
+                                      fontVariations: [FontVariation('wght', 800)],
                                       color: Color(0xFF230505),
                                       letterSpacing: -1.4,
                                       height: 1.0,
@@ -1024,6 +1032,7 @@ class _AbsenPageState extends State<AbsenPage> {
                                       fontFamily: _secondaryFont,
                                       fontSize: 11.5,
                                       fontWeight: FontWeight.w700,
+                                      fontVariations: [FontVariation('wght', 700)],
                                       color: Colors.grey.shade500,
                                     ),
                                   ),
@@ -1061,6 +1070,7 @@ class _AbsenPageState extends State<AbsenPage> {
                                     fontFamily: _primaryFont,
                                     fontSize: 10.5,
                                     fontWeight: FontWeight.w700,
+                                    fontVariations: [FontVariation('wght', 700)],
                                     color: _userPosition == null
                                         ? Colors.grey.shade700
                                         : (_isInsideRadius
@@ -1079,6 +1089,7 @@ class _AbsenPageState extends State<AbsenPage> {
                                   fontFamily: _primaryFont,
                                   fontSize: 13.5,
                                   fontWeight: FontWeight.w700,
+                                  fontVariations: [FontVariation('wght', 700)],
                                   color: Color(0xFF1E1E1E),
                                 ),
                               ),
@@ -1112,6 +1123,7 @@ class _AbsenPageState extends State<AbsenPage> {
                           fontFamily: _primaryFont,
                           fontSize: 16,
                           fontWeight: FontWeight.w700,
+                          fontVariations: [FontVariation('wght', 700)],
                           color: Color(0xFF1E1E1E),
                           letterSpacing: -0.2,
                         ),
@@ -1124,6 +1136,7 @@ class _AbsenPageState extends State<AbsenPage> {
                             fontFamily: _primaryFont,
                             fontSize: 12.5,
                             fontWeight: FontWeight.w700,
+                            fontVariations: [FontVariation('wght', 700)],
                             color: Color(0xFF5E1212),
                           ),
                         ),
@@ -1249,6 +1262,7 @@ class _AbsenPageState extends State<AbsenPage> {
                                                   fontFamily: _primaryFont,
                                                   fontSize: 9,
                                                   fontWeight: FontWeight.w700,
+                                                  fontVariations: [FontVariation('wght', 700)],
                                                   color: Color(0xFF4A1010),
                                                 ),
                                                 maxLines: 1,
@@ -1296,6 +1310,7 @@ class _AbsenPageState extends State<AbsenPage> {
                                                     fontFamily: _primaryFont,
                                                     fontSize: 9,
                                                     fontWeight: FontWeight.w700,
+                                                    fontVariations: [FontVariation('wght', 700)],
                                                     color: Colors.white,
                                                   ),
                                                 ),
@@ -1402,6 +1417,7 @@ class _AbsenPageState extends State<AbsenPage> {
                               fontFamily: _primaryFont,
                               fontSize: 15.5,
                               fontWeight: FontWeight.w700,
+                              fontVariations: [FontVariation('wght', 700)],
                               color: Colors.white,
                               letterSpacing: 0.2,
                             ),
@@ -1420,6 +1436,7 @@ class _AbsenPageState extends State<AbsenPage> {
                           fontFamily: _primaryFont,
                           fontSize: 16,
                           fontWeight: FontWeight.w700,
+                          fontVariations: [FontVariation('wght', 700)],
                           color: Color(0xFF1E1E1E),
                           letterSpacing: -0.2,
                         ),
@@ -1432,6 +1449,7 @@ class _AbsenPageState extends State<AbsenPage> {
                             fontFamily: _primaryFont,
                             fontSize: 12.5,
                             fontWeight: FontWeight.w700,
+                            fontVariations: [FontVariation('wght', 700)],
                             color: Color(0xFF5E1212),
                           ),
                         ),
@@ -1557,6 +1575,7 @@ class _AbsenPageState extends State<AbsenPage> {
                                                 fontFamily: _primaryFont,
                                                 fontSize: 14,
                                                 fontWeight: FontWeight.w700,
+                                                fontVariations: [FontVariation('wght', 700)],
                                                 color: Color(0xFF1E1E1E),
                                               ),
                                             ),
@@ -1584,6 +1603,7 @@ class _AbsenPageState extends State<AbsenPage> {
                                               fontFamily: _primaryFont,
                                               fontSize: 13.5,
                                               fontWeight: FontWeight.w700,
+                                              fontVariations: [FontVariation('wght', 700)],
                                               color: Color(0xFF230505),
                                               fontFeatures: [
                                                 FontFeature.tabularFigures(),
@@ -1610,6 +1630,7 @@ class _AbsenPageState extends State<AbsenPage> {
                                                 fontFamily: _primaryFont,
                                                 fontSize: 10,
                                                 fontWeight: FontWeight.w700,
+                                                fontVariations: [FontVariation('wght', 700)],
                                                 color: status.toLowerCase() ==
                                                         'terlambat'
                                                     ? Colors.amber.shade900
@@ -1704,6 +1725,7 @@ class _AbsenPageState extends State<AbsenPage> {
           selectedLabelStyle: const TextStyle(
             fontFamily: _primaryFont,
             fontWeight: FontWeight.w700,
+            fontVariations: [FontVariation('wght', 700)],
             fontSize: 12,
           ),
           unselectedLabelStyle: const TextStyle(
