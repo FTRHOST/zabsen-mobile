@@ -8,15 +8,25 @@ import 'package:url_launcher/url_launcher.dart';
 import 'app_config.dart';
 import 'auth_session.dart';
 import 'hari_libur.dart';
+import 'session_actions.dart';
+
+typedef _DataMap = Map<String, dynamic>;
 
 /// Bucket penyimpanan lampiran, sama dengan web referensi
 /// (`supabase.storage.from("absensi-bucket")`).
 const String _kStorageBucket = 'absensi-bucket';
 
-/// Warna inti aplikasi (sama dengan halaman Login/Absen/Profil).
-const Color _kHeading = Color(0xFF4A1010);
-const Color _kPrimary = Color(0xFF500808);
-const Color _kHint = Color(0xFF6E6E6E);
+// Font utama & sekunder yang selaras dengan AbsenPage & KalenderPage
+const String _primaryFont = 'Google Sans Flex';
+const String _secondaryFont = 'Inter';
+
+// Palet warna utama Zieda Absen
+const Color _kCanvasBg = Color(0xFFF7F5F4);
+const Color _kMaroonDeep = Color(0xFF330808);
+const Color _kBurgundy = Color(0xFF5E1212);
+const Color _kTerracotta = Color(0xFF8F382B);
+const Color _kTextPrimary = Color(0xFF1E1E1E);
+const Color _kTextMuted = Color(0xFF6E6E6E);
 
 const List<String> _kMonthShort = [
   'Jan',
@@ -33,19 +43,19 @@ const List<String> _kMonthShort = [
   'Des',
 ];
 
-/// Halaman Izin & Cuti.
-///
-/// Fitur dan alurnya disamakan dengan tab "Cuti" pada web referensi
-/// (`web-references-zabsen/index.html`):
-/// - Formulir pengajuan dibangun **dinamis** dari tabel `form_cuti_config`.
-/// - Pilihan jenis cuti diambil dari `master_jenis_cuti` (tipe `master_cuti`).
-/// - Sisa cuti dihitung dari `cuti` + aturan siklus pada `master_jenis_cuti`.
-/// - Riwayat pengajuan, pembatalan, validasi tanggal, overlapping, dan kuota.
-///
-/// Tampilan memakai komponen Material You (Material 3) agar konsisten dengan
-/// halaman lain pada aplikasi ini.
+/// Halaman Izin & Cuti dengan Hero Gradient Header & Overlapping Card
+/// yang selaras dengan AbsenPage dan KalenderPage.
 class IzinPage extends StatefulWidget {
-  const IzinPage({super.key});
+  const IzinPage({
+    super.key,
+    this.isAdmin = false,
+    this.onOpenAdmin,
+    this.onLogout,
+  });
+
+  final bool isAdmin;
+  final VoidCallback? onOpenAdmin;
+  final VoidCallback? onLogout;
 
   @override
   State<IzinPage> createState() => IzinPageState();
@@ -54,12 +64,13 @@ class IzinPage extends StatefulWidget {
 class IzinPageState extends State<IzinPage> {
   final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
 
-  Map<String, dynamic>? _user;
+  _DataMap? _user;
+  bool _isAdminUser = false;
 
   List<_FieldConfig> _configs = [];
-  List<Map<String, dynamic>> _masterCuti = [];
+  List<_DataMap> _masterCuti = [];
   Map<String, _SisaCutiInfo> _sisaCuti = {};
-  List<Map<String, dynamic>> _riwayat = [];
+  List<_DataMap> _riwayat = [];
 
   final Map<String, TextEditingController> _textControllers = {};
   final Map<String, String> _selectedValues = {};
@@ -78,6 +89,7 @@ class IzinPageState extends State<IzinPage> {
   @override
   void initState() {
     super.initState();
+    _isAdminUser = widget.isAdmin;
     reload();
   }
 
@@ -93,7 +105,6 @@ class IzinPageState extends State<IzinPage> {
   // DATA
   // ============================================================
 
-  /// Memuat ulang sesi pengguna, konfigurasi form, master cuti, dan riwayat.
   Future<void> reload({bool showLoading = true}) async {
     if (mounted) {
       setState(() {
@@ -112,10 +123,15 @@ class IzinPageState extends State<IzinPage> {
         setState(() {
           _user = null;
           _isLoading = false;
-          _loadError = 'Data pengguna tidak ditemukan. Silakan logout lalu login kembali.';
+          _loadError =
+              'Data pengguna tidak ditemukan. Silakan logout lalu login kembali.';
         });
         return;
       }
+
+      final role = (user['role'] ?? '').toString().trim().toLowerCase();
+      final isAdminDetected =
+          widget.isAdmin || role == 'hr' || role == 'super admin';
 
       final results = await Future.wait<dynamic>([
         _supabase
@@ -135,25 +151,26 @@ class IzinPageState extends State<IzinPage> {
       final cutiRows = results[2] is List ? results[2] as List : const [];
 
       final configs = configRows
-          .whereType<Map>()
-          .map((row) => _FieldConfig.fromMap(Map<String, dynamic>.from(row)))
+          .whereType()
+          .map((row) => _FieldConfig.fromMap(_DataMap.from(row)))
           .where((config) => config.label.isNotEmpty)
           .toList();
 
       final masters = masterRows
-          .whereType<Map>()
-          .map((row) => Map<String, dynamic>.from(row))
+          .whereType()
+          .map((row) => _DataMap.from(row))
           .toList();
 
       final riwayat = cutiRows
-          .whereType<Map>()
-          .map((row) => Map<String, dynamic>.from(row))
+          .whereType()
+          .map((row) => _DataMap.from(row))
           .toList();
 
       if (!mounted) return;
 
       setState(() {
-        _user = Map<String, dynamic>.from(user);
+        _user = _DataMap.from(user);
+        _isAdminUser = isAdminDetected;
         _configs = configs;
         _masterCuti = masters;
         _riwayat = riwayat;
@@ -172,11 +189,9 @@ class IzinPageState extends State<IzinPage> {
     }
   }
 
-  /// Menghitung sisa cuti per jenis, mengikuti aturan siklus pada web:
-  /// Tahunan (tahun berjalan), Bulanan (bulan berjalan), Sekali (seluruhnya).
   Map<String, _SisaCutiInfo> _hitungSisaCuti(
-    List<Map<String, dynamic>> masters,
-    List<Map<String, dynamic>> riwayat,
+    List<_DataMap> masters,
+    List<_DataMap> riwayat,
   ) {
     final usedRows = riwayat.where((row) {
       final status = (row['status_pengajuan'] ?? '').toString().trim();
@@ -267,11 +282,6 @@ class IzinPageState extends State<IzinPage> {
     }
   }
 
-  /// Meniru `evalFormConditions()` pada web referensi.
-  ///
-  /// Kolom non-dropdown yang punya `opsi` berisi `Label=Nilai` atau
-  /// `Label!=Nilai` hanya tampil ketika nilai kolom `Label` cocok.
-  /// Nilai ganda dipisahkan tanda `|`.
   bool _isVisible(_FieldConfig config) {
     if (config.tipe == 'dropdown') return true;
 
@@ -305,8 +315,6 @@ class IzinPageState extends State<IzinPage> {
     return expected.contains(actual);
   }
 
-  /// Membersihkan nilai kolom yang sedang tersembunyi agar tidak ikut terkirim
-  /// (perilaku web: input di-reset saat disembunyikan).
   void _pruneHiddenFields() {
     for (final config in _configs) {
       if (_isVisible(config)) continue;
@@ -347,6 +355,18 @@ class IzinPageState extends State<IzinPage> {
       helpText: config.label,
       cancelText: 'Batal',
       confirmText: 'Pilih',
+      builder: (context, child) {
+        return Theme(
+          data: Theme.of(context).copyWith(
+            colorScheme: Theme.of(context).colorScheme.copyWith(
+                  primary: _kBurgundy,
+                  onPrimary: Colors.white,
+                  surface: Colors.white,
+                ),
+          ),
+          child: child!,
+        );
+      },
     );
 
     if (picked == null || !mounted) return;
@@ -423,7 +443,7 @@ class IzinPageState extends State<IzinPage> {
     setState(() => _isSubmitting = true);
 
     try {
-      final dataTambahan = <String, dynamic>{};
+      final dataTambahan = _DataMap();
       String? tanggalMulai;
       String? tanggalSelesai;
       String alasan = '-';
@@ -470,7 +490,6 @@ class IzinPageState extends State<IzinPage> {
             tanggalMulai = value.toString();
           }
 
-          // Fallback: tanggal pertama menjadi tanggal mulai.
           if (tanggalMulai == null || tanggalMulai.isEmpty) {
             tanggalMulai = value.toString();
           }
@@ -518,8 +537,6 @@ class IzinPageState extends State<IzinPage> {
           !day.isAfter(end);
           day = day.add(const Duration(days: 1))
         ) {
-          // DateTime.weekday: Senin=1 ... Minggu=7. Hari libur web memakai
-          // getDay(): Minggu=0 ... Sabtu=6.
           if (!holidayDays.contains(day.weekday % 7)) {
             durasiHari++;
           }
@@ -536,7 +553,6 @@ class IzinPageState extends State<IzinPage> {
         }
       }
 
-      // Cek bentrok dengan pengajuan lain yang masih Menunggu/Disetujui.
       final isOverlap = _riwayat.any((row) {
         final status = (row['status_pengajuan'] ?? '').toString().trim();
         if (status != 'Disetujui' && status != 'Menunggu') return false;
@@ -558,7 +574,6 @@ class IzinPageState extends State<IzinPage> {
         return;
       }
 
-      // Validasi kuota terhadap master jenis cuti yang dipilih.
       String? namaCutiTerpilih;
       _SisaCutiInfo? infoCuti;
       for (final value in dataTambahan.values) {
@@ -605,8 +620,10 @@ class IzinPageState extends State<IzinPage> {
 
       final jenisTeks =
           (namaCutiTerpilih != null && namaCutiTerpilih.isNotEmpty)
-          ? namaCutiTerpilih
-          : (jenisCuti != null && jenisCuti.isNotEmpty ? jenisCuti : 'Lainnya');
+              ? namaCutiTerpilih
+              : (jenisCuti != null && jenisCuti.isNotEmpty
+                  ? jenisCuti
+                  : 'Lainnya');
 
       unawaited(
         _sendTelegramNotification(
@@ -666,12 +683,11 @@ class IzinPageState extends State<IzinPage> {
         body: {'message': message, 'chat_id': chatId},
       );
     } catch (e) {
-      // Notifikasi bersifat opsional; pengajuan tetap tersimpan.
       debugPrint('Notifikasi Telegram gagal dikirim: $e');
     }
   }
 
-  Future<void> _batalkanPengajuan(Map<String, dynamic> row) async {
+  Future<void> _batalkanPengajuan(_DataMap row) async {
     final scheme = Theme.of(context).colorScheme;
     final id = row['id'];
     if (id == null) return;
@@ -679,26 +695,59 @@ class IzinPageState extends State<IzinPage> {
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(28)),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+        backgroundColor: Colors.white,
         icon: Icon(Icons.delete_outline_rounded, color: scheme.error, size: 30),
-        title: const Text('Batalkan Pengajuan?'),
+        title: const Text(
+          'Batalkan Pengajuan?',
+          style: TextStyle(
+            fontFamily: _primaryFont,
+            fontSize: 17,
+            fontWeight: FontWeight.w800,
+            fontVariations: [FontVariation('wght', 800)],
+            color: _kTextPrimary,
+          ),
+        ),
         content: const Text(
           'Pengajuan cuti/izin ini akan dihapus dan tidak dapat dikembalikan.',
           textAlign: TextAlign.center,
+          style: TextStyle(
+            fontFamily: _secondaryFont,
+            fontSize: 13.5,
+            color: _kTextMuted,
+          ),
         ),
         actionsAlignment: MainAxisAlignment.center,
         actions: [
           TextButton(
             onPressed: () => Navigator.of(ctx).pop(false),
-            child: const Text('Tidak'),
+            child: const Text(
+              'Tidak',
+              style: TextStyle(
+                fontFamily: _primaryFont,
+                fontWeight: FontWeight.w700,
+                fontVariations: [FontVariation('wght', 700)],
+                color: _kTextMuted,
+              ),
+            ),
           ),
           FilledButton(
             onPressed: () => Navigator.of(ctx).pop(true),
             style: FilledButton.styleFrom(
               backgroundColor: scheme.error,
-              foregroundColor: scheme.onError,
+              foregroundColor: Colors.white,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(14),
+              ),
             ),
-            child: const Text('Batalkan'),
+            child: const Text(
+              'Batalkan',
+              style: TextStyle(
+                fontFamily: _primaryFont,
+                fontWeight: FontWeight.w700,
+                fontVariations: [FontVariation('wght', 700)],
+              ),
+            ),
           ),
         ],
       ),
@@ -716,7 +765,10 @@ class IzinPageState extends State<IzinPage> {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: const Text('Pengajuan berhasil dibatalkan.'),
+          content: const Text(
+            'Pengajuan berhasil dibatalkan.',
+            style: TextStyle(fontFamily: _secondaryFont),
+          ),
           behavior: SnackBarBehavior.floating,
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(12),
@@ -738,142 +790,430 @@ class IzinPageState extends State<IzinPage> {
   // UI
   // ============================================================
 
-  @override
-  Widget build(BuildContext context) {
-    final scheme = Theme.of(context).colorScheme;
-
-    if (_isLoading) {
-      return Center(child: CircularProgressIndicator(color: scheme.primary));
-    }
-
-    if (_loadError != null) {
-      return Center(
+  Widget _buildHeroGlassAction({
+    required String label,
+    required IconData icon,
+    required VoidCallback onTap,
+  }) {
+    return Material(
+      color: Colors.white.withValues(alpha: 0.14),
+      borderRadius: BorderRadius.circular(40),
+      child: InkWell(
+        borderRadius: BorderRadius.circular(40),
+        onTap: onTap,
         child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 32.0),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
             children: [
-              Icon(Icons.cloud_off_rounded, size: 56, color: scheme.outline),
-              const SizedBox(height: 12),
-              const Text(
-                'Data belum dapat dimuat',
-                textAlign: TextAlign.center,
-                style: TextStyle(fontSize: 15, fontWeight: FontWeight.w700),
-              ),
-              const SizedBox(height: 8),
+              Icon(icon, color: Colors.white, size: 14),
+              const SizedBox(width: 5),
               Text(
-                _loadError!,
-                textAlign: TextAlign.center,
+                label,
                 style: const TextStyle(
+                  fontFamily: _primaryFont,
+                  color: Colors.white,
                   fontSize: 12,
-                  color: _kHint,
-                  height: 1.5,
+                  fontWeight: FontWeight.w600,
+                  fontVariations: [FontVariation('wght', 600)],
                 ),
-              ),
-              const SizedBox(height: 20),
-              FilledButton.icon(
-                onPressed: reload,
-                icon: const Icon(Icons.refresh_rounded, size: 18),
-                label: const Text('Coba Lagi'),
-                style: FilledButton.styleFrom(minimumSize: const Size(160, 46)),
               ),
             ],
           ),
         ),
-      );
-    }
+      ),
+    );
+  }
 
-    return RefreshIndicator(
-      color: scheme.primary,
-      onRefresh: () => reload(showLoading: false),
-      child: ListView(
-        physics: const AlwaysScrollableScrollPhysics(),
-        padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 16.0),
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    final double topSafePadding = MediaQuery.of(context).padding.top;
+
+    return ColoredBox(
+      color: _kCanvasBg,
+      child: RefreshIndicator(
+        color: _kBurgundy,
+        onRefresh: () => reload(showLoading: false),
+        child: SingleChildScrollView(
+          physics: const AlwaysScrollableScrollPhysics(),
+          child: Stack(
+            children: [
+              // ==========================================================
+              // LAYER BACKGROUND GRADASI HEADER (IDENTIK DENGAN ABSEN & KALENDER)
+              // ==========================================================
+              Container(
+                height: 212 + topSafePadding,
+                width: double.infinity,
+                decoration: const BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                    colors: [
+                      _kMaroonDeep,
+                      _kBurgundy,
+                      _kTerracotta,
+                    ],
+                    stops: [0.0, 0.55, 1.0],
+                  ),
+                  borderRadius: BorderRadius.vertical(
+                    bottom: Radius.circular(32),
+                  ),
+                ),
+                child: Stack(
+                  children: [
+                    Positioned(
+                      right: -25,
+                      bottom: -25,
+                      child: Container(
+                        width: 180,
+                        height: 180,
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          gradient: RadialGradient(
+                            colors: [
+                              const Color(0xFFE0B17E).withValues(alpha: 0.24),
+                              Colors.transparent,
+                            ],
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+
+              // ==========================================================
+              // KONTEN UTAMA DI ATAS BACKGROUND
+              // ==========================================================
+              Padding(
+                padding: EdgeInsets.fromLTRB(
+                  22.0,
+                  topSafePadding + 14.0,
+                  22.0,
+                  28.0,
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // 1. TOP BAR: Tulisan ZIEDA ABSEN murni tanpa box/lingkaran
+                    SizedBox(
+                      height: 30,
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        crossAxisAlignment: CrossAxisAlignment.center,
+                        children: [
+                          const Text(
+                            'ZIEDA ABSEN',
+                            style: TextStyle(
+                              fontFamily: _primaryFont,
+                              fontSize: 15,
+                              fontWeight: FontWeight.w800,
+                              fontVariations: [FontVariation('wght', 800)],
+                              color: Colors.white,
+                              letterSpacing: 1.4,
+                            ),
+                          ),
+                          Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              if (_isAdminUser &&
+                                  widget.onOpenAdmin != null) ...[
+                                _buildHeroGlassAction(
+                                  label: 'Admin',
+                                  icon: Icons.admin_panel_settings_outlined,
+                                  onTap: widget.onOpenAdmin!,
+                                ),
+                                const SizedBox(width: 8),
+                              ],
+                              _buildHeroGlassAction(
+                                label: 'Logout',
+                                icon: Icons.logout_rounded,
+                                onTap: widget.onLogout ??
+                                    () => logoutToLogin(context),
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
+                    ),
+
+                    const SizedBox(height: 18),
+
+                    // 2. JUDUL HALAMAN (Tipografi Kontras)
+                    RichText(
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      text: TextSpan(
+                        style: const TextStyle(
+                          fontSize: 23,
+                          color: Colors.white,
+                          letterSpacing: -0.3,
+                        ),
+                        children: [
+                          TextSpan(
+                            text: 'Pengajuan ',
+                            style: TextStyle(
+                              fontFamily: _secondaryFont,
+                              fontWeight: FontWeight.w400,
+                              color: Colors.white.withValues(alpha: 0.86),
+                            ),
+                          ),
+                          const TextSpan(
+                            text: 'Izin & Cuti',
+                            style: TextStyle(
+                              fontFamily: _primaryFont,
+                              fontWeight: FontWeight.w800,
+                              fontVariations: [FontVariation('wght', 800)],
+                              color: Colors.white,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      'Kelola permohonan cuti, izin, & sakit sesuai HRD',
+                      style: TextStyle(
+                        fontFamily: _secondaryFont,
+                        fontSize: 13,
+                        fontWeight: FontWeight.w400,
+                        color: Colors.white.withValues(alpha: 0.80),
+                      ),
+                    ),
+
+                    const SizedBox(height: 22),
+
+                    // 3. OVERLAPPING HERO CARD: AKSES SISA CUTI & RIWAYAT
+                    _buildOverlappingQuickCard(),
+
+                    const SizedBox(height: 22),
+
+                    // 4. KONTEN FORMULIR / LOADING / ERROR
+                    if (_isLoading)
+                      Container(
+                        height: 300,
+                        width: double.infinity,
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(24),
+                        ),
+                        child: const Center(
+                          child: CircularProgressIndicator(color: _kBurgundy),
+                        ),
+                      )
+                    else if (_loadError != null)
+                      _buildErrorCard()
+                    else
+                      _buildFormSection(scheme),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  /// Kartu putih melayang tepat di garis transisi header (tanpa garis pemisah)
+  Widget _buildOverlappingQuickCard() {
+    final menungguCount = _riwayat
+        .where((r) =>
+            (r['status_pengajuan'] ?? '').toString().trim() == 'Menunggu')
+        .length;
+
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(vertical: 20.0, horizontal: 22.0),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(24),
+        boxShadow: [
+          BoxShadow(
+            color: const Color(0xFF2D0707).withValues(alpha: 0.09),
+            blurRadius: 24,
+            offset: const Offset(0, 10),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text(
-            'Izin & Cuti',
+          Text(
+            'Ringkasan Kuota & Pengajuan',
             style: TextStyle(
-              fontSize: 20,
-              fontWeight: FontWeight.w900,
-              color: _kHeading,
-              letterSpacing: 0.5,
-            ),
-          ),
-          const SizedBox(height: 4),
-          const Text(
-            'Ajukan cuti, izin, atau sakit sesuai formulir dari HRD',
-            style: TextStyle(
-              fontSize: 13,
-              color: _kHint,
+              fontFamily: _secondaryFont,
+              fontSize: 11.5,
               fontWeight: FontWeight.w500,
-              height: 1.4,
+              color: Colors.grey.shade500,
             ),
           ),
-          const SizedBox(height: 20),
-          _buildActionRow(scheme),
-          const SizedBox(height: 16),
-          _buildFormCard(scheme),
-          const SizedBox(height: 24),
+          const SizedBox(height: 8),
+          Row(
+            children: [
+              // Tombol Sisa Cuti
+          Expanded(
+            child: InkWell(
+              borderRadius: BorderRadius.circular(16),
+              onTap: _isLoading ? null : _showSisaCutiSheet,
+              child: Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 10,
+                ),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFFCE4E6).withValues(alpha: 0.65),
+                  borderRadius: BorderRadius.circular(16),
+                ),
+                child: Row(
+                  children: [
+                    Container(
+                      width: 36,
+                      height: 36,
+                      decoration: BoxDecoration(
+                        color: _kBurgundy,
+                        borderRadius: BorderRadius.circular(11),
+                      ),
+                      child: const Icon(
+                        Icons.confirmation_number_outlined,
+                        size: 18,
+                        color: Colors.white,
+                      ),
+                    ),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Text(
+                            'Sisa Cuti',
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: TextStyle(
+                              fontFamily: _primaryFont,
+                              fontSize: 13.5,
+                              fontWeight: FontWeight.w800,
+                              fontVariations: [FontVariation('wght', 800)],
+                              color: _kMaroonDeep,
+                            ),
+                          ),
+                          const SizedBox(height: 1),
+                          Text(
+                            _isLoading
+                                ? 'Memuat...'
+                                : '${_masterCuti.length} jenis kuota',
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: const TextStyle(
+                              fontFamily: _secondaryFont,
+                              fontSize: 11,
+                              color: _kTextMuted,
+                              fontFeatures: [FontFeature.tabularFigures()],
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+
+          const SizedBox(width: 10),
+
+          // Tombol Riwayat Pengajuan
+          Expanded(
+            child: InkWell(
+              borderRadius: BorderRadius.circular(16),
+              onTap: _isLoading ? null : _showRiwayatSheet,
+              child: Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 10,
+                ),
+                decoration: BoxDecoration(
+                  color: _kCanvasBg,
+                  borderRadius: BorderRadius.circular(16),
+                ),
+                child: Row(
+                  children: [
+                    Container(
+                      width: 36,
+                      height: 36,
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(11),
+                      ),
+                      child: const Icon(
+                        Icons.history_rounded,
+                        size: 19,
+                        color: _kBurgundy,
+                      ),
+                    ),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Text(
+                            'Riwayat',
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: TextStyle(
+                              fontFamily: _primaryFont,
+                              fontSize: 13.5,
+                              fontWeight: FontWeight.w800,
+                              fontVariations: [FontVariation('wght', 800)],
+                              color: _kTextPrimary,
+                            ),
+                          ),
+                          const SizedBox(height: 1),
+                          Text(
+                            _isLoading
+                                ? 'Memuat...'
+                                : menungguCount > 0
+                                    ? '$menungguCount menunggu'
+                                    : '${_riwayat.length} pengajuan',
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: TextStyle(
+                              fontFamily: _secondaryFont,
+                              fontSize: 11,
+                              fontWeight: menungguCount > 0
+                                  ? FontWeight.w600
+                                  : FontWeight.w400,
+                              color: menungguCount > 0
+                                  ? const Color(0xFF7A5900)
+                                  : _kTextMuted,
+                              fontFeatures: const [
+                                FontFeature.tabularFigures(),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+            ],
+          ),
         ],
       ),
     );
   }
 
-  Widget _buildActionRow(ColorScheme scheme) {
-    final buttonShape = RoundedRectangleBorder(
-      borderRadius: BorderRadius.circular(18),
-    );
-
-    return Row(
-      children: [
-        Expanded(
-          child: FilledButton.tonalIcon(
-            onPressed: _showSisaCutiSheet,
-            icon: const Icon(Icons.confirmation_number_outlined, size: 20),
-            label: const Text('Sisa Cuti'),
-            style: FilledButton.styleFrom(
-              minimumSize: const Size.fromHeight(52),
-              shape: buttonShape,
-              textStyle: const TextStyle(
-                fontSize: 13,
-                fontWeight: FontWeight.w700,
-              ),
-            ),
-          ),
-        ),
-        const SizedBox(width: 12),
-        Expanded(
-          child: OutlinedButton.icon(
-            onPressed: _showRiwayatSheet,
-            icon: const Icon(Icons.history_rounded, size: 20),
-            label: const Text('Riwayat'),
-            style: OutlinedButton.styleFrom(
-              minimumSize: const Size.fromHeight(52),
-              shape: buttonShape,
-              side: BorderSide(color: scheme.outlineVariant, width: 1.2),
-              foregroundColor: scheme.onSurface,
-              textStyle: const TextStyle(
-                fontSize: 13,
-                fontWeight: FontWeight.w700,
-              ),
-            ),
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildFormCard(ColorScheme scheme) {
+  Widget _buildErrorCard() {
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.all(20.0),
+      padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 32.0),
       decoration: BoxDecoration(
-        color: scheme.surfaceContainerLow,
+        color: Colors.white,
         borderRadius: BorderRadius.circular(24),
-        border: Border.all(
-          color: scheme.outlineVariant.withValues(alpha: 0.7),
-          width: 1.2,
-        ),
         boxShadow: [
           BoxShadow(
             color: Colors.black.withValues(alpha: 0.04),
@@ -883,104 +1223,194 @@ class IzinPageState extends State<IzinPage> {
         ],
       ),
       child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Row(
-            children: [
-              Container(
-                padding: const EdgeInsets.all(9),
-                decoration: BoxDecoration(
-                  color: scheme.primaryContainer,
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: Icon(
-                  Icons.edit_calendar_rounded,
-                  size: 20,
-                  color: scheme.onPrimaryContainer,
-                ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'Formulir Pengajuan',
-                      style: TextStyle(
-                        fontSize: 15,
-                        fontWeight: FontWeight.w800,
-                        color: scheme.onSurface,
-                      ),
-                    ),
-                    const SizedBox(height: 2),
-                    Text(
-                      'Formulir mengikuti konfigurasi HRD',
-                      style: TextStyle(
-                        fontSize: 11,
-                        color: scheme.onSurfaceVariant,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ],
+          Icon(Icons.cloud_off_rounded, size: 48, color: Colors.grey.shade400),
+          const SizedBox(height: 12),
+          const Text(
+            'Data belum dapat dimuat',
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              fontFamily: _primaryFont,
+              fontSize: 16,
+              fontWeight: FontWeight.w700,
+              fontVariations: [FontVariation('wght', 700)],
+              color: _kTextPrimary,
+            ),
           ),
-          const SizedBox(height: 18),
-          if (_configs.isEmpty)
-            _buildInfoBox(
-              scheme,
-              Icons.info_outline_rounded,
-              'Formulir cuti belum dikonfigurasi. Hubungi Admin/HRD.',
-            )
-          else
-            KeyedSubtree(
-              key: ValueKey(_formVersion),
-              child: Form(
-                key: _formKey,
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    for (final config in _configs)
-                      if (_isVisible(config)) ...[
-                        _buildField(config, scheme),
-                        const SizedBox(height: 16),
-                      ],
-                    const SizedBox(height: 4),
-                    FilledButton(
-                      onPressed: _isSubmitting ? null : _submit,
-                      style: FilledButton.styleFrom(
-                        minimumSize: const Size.fromHeight(52),
-                        backgroundColor: _kPrimary,
-                        foregroundColor: Colors.white,
-                        disabledBackgroundColor: _kPrimary.withValues(
-                          alpha: 0.55,
-                        ),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(18),
-                        ),
-                        textStyle: const TextStyle(
-                          fontSize: 14,
-                          fontWeight: FontWeight.w700,
-                          letterSpacing: 0.3,
-                        ),
-                      ),
-                      child: _isSubmitting
-                          ? const SizedBox(
-                              height: 20,
-                              width: 20,
-                              child: CircularProgressIndicator(
-                                strokeWidth: 2.4,
-                                color: Colors.white,
-                              ),
-                            )
-                          : const Text('Kirim Pengajuan'),
-                    ),
-                  ],
+          const SizedBox(height: 8),
+          Text(
+            _loadError!,
+            textAlign: TextAlign.center,
+            style: const TextStyle(
+              fontFamily: _secondaryFont,
+              fontSize: 12.5,
+              color: _kTextMuted,
+              height: 1.5,
+            ),
+          ),
+          const SizedBox(height: 20),
+          GestureDetector(
+            onTap: reload,
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 13),
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(16),
+                gradient: const LinearGradient(
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                  colors: [Color(0xFF5A1212), Color(0xFF2B0606)],
+                ),
+              ),
+              child: const Text(
+                'Coba Lagi',
+                style: TextStyle(
+                  fontFamily: _primaryFont,
+                  fontSize: 14,
+                  fontWeight: FontWeight.w700,
+                  fontVariations: [FontVariation('wght', 700)],
+                  color: Colors.white,
                 ),
               ),
             ),
+          ),
         ],
       ),
+    );
+  }
+
+  Widget _buildFormSection(ColorScheme scheme) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        // Section Header (Senada dengan "Lokasi Presensi" di AbsenPage)
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            const Text(
+              'Formulir Pengajuan',
+              style: TextStyle(
+                fontFamily: _primaryFont,
+                fontSize: 16,
+                fontWeight: FontWeight.w700,
+                fontVariations: [FontVariation('wght', 700)],
+                color: _kTextPrimary,
+                letterSpacing: -0.2,
+              ),
+            ),
+            GestureDetector(
+              onTap: () => reload(showLoading: false),
+              child: const Text(
+                'Muat Ulang',
+                style: TextStyle(
+                  fontFamily: _primaryFont,
+                  fontSize: 12.5,
+                  fontWeight: FontWeight.w700,
+                  fontVariations: [FontVariation('wght', 700)],
+                  color: _kBurgundy,
+                ),
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 12),
+
+        // Kartu Putih Bersih Form Dinamis
+        Container(
+          width: double.infinity,
+          padding: const EdgeInsets.all(20.0),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(24),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.04),
+                blurRadius: 16,
+                offset: const Offset(0, 6),
+              ),
+            ],
+          ),
+          child: _configs.isEmpty
+              ? _buildInfoBox(
+                  Icons.info_outline_rounded,
+                  'Formulir cuti belum dikonfigurasi. Hubungi Admin/HRD.',
+                )
+              : KeyedSubtree(
+                  key: ValueKey(_formVersion),
+                  child: Form(
+                    key: _formKey,
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        for (final config in _configs)
+                          if (_isVisible(config)) ...[
+                            _buildField(config, scheme),
+                            const SizedBox(height: 16),
+                          ],
+                        const SizedBox(height: 6),
+                        GestureDetector(
+                          onTap: _isSubmitting ? null : _submit,
+                          child: Container(
+                            height: 54,
+                            width: double.infinity,
+                            decoration: BoxDecoration(
+                              borderRadius: BorderRadius.circular(18),
+                              gradient: LinearGradient(
+                                begin: Alignment.topLeft,
+                                end: Alignment.bottomRight,
+                                colors: _isSubmitting
+                                    ? [
+                                        const Color(0xFF5A1212)
+                                            .withValues(alpha: 0.55),
+                                        const Color(0xFF2B0606)
+                                            .withValues(alpha: 0.55),
+                                      ]
+                                    : const [
+                                        Color(0xFF5A1212),
+                                        Color(0xFF2B0606),
+                                      ],
+                              ),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: const Color(0xFF3A0A0A)
+                                      .withValues(alpha: 0.28),
+                                  blurRadius: 14,
+                                  offset: const Offset(0, 5),
+                                ),
+                              ],
+                            ),
+                            child: Center(
+                              child: _isSubmitting
+                                  ? const SizedBox(
+                                      height: 20,
+                                      width: 20,
+                                      child: CircularProgressIndicator(
+                                        strokeWidth: 2.4,
+                                        color: Colors.white,
+                                      ),
+                                    )
+                                  : const Text(
+                                      'Kirim Pengajuan',
+                                      style: TextStyle(
+                                        fontFamily: _primaryFont,
+                                        fontSize: 15,
+                                        fontWeight: FontWeight.w700,
+                                        fontVariations: [
+                                          FontVariation('wght', 700),
+                                        ],
+                                        color: Colors.white,
+                                        letterSpacing: 0.2,
+                                      ),
+                                    ),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+        ),
+      ],
     );
   }
 
@@ -1002,21 +1432,26 @@ class IzinPageState extends State<IzinPage> {
 
   Widget _buildFieldLabel(_FieldConfig config, ColorScheme scheme) {
     return Padding(
-      padding: const EdgeInsets.only(left: 4, bottom: 8),
+      padding: const EdgeInsets.only(left: 2, bottom: 8),
       child: RichText(
         text: TextSpan(
           text: config.label,
-          style: TextStyle(
+          style: const TextStyle(
+            fontFamily: _primaryFont,
             fontSize: 13,
             fontWeight: FontWeight.w700,
-            color: scheme.onSurfaceVariant,
-            letterSpacing: 0.1,
+            fontVariations: [FontVariation('wght', 700)],
+            color: _kTextPrimary,
+            letterSpacing: -0.1,
           ),
           children: [
             if (config.wajib)
               TextSpan(
                 text: ' *',
-                style: TextStyle(color: scheme.error),
+                style: TextStyle(
+                  color: scheme.error,
+                  fontWeight: FontWeight.w800,
+                ),
               ),
           ],
         ),
@@ -1034,16 +1469,17 @@ class IzinPageState extends State<IzinPage> {
 
     return InputDecoration(
       hintText: hint,
-      hintStyle: TextStyle(
-        fontSize: 14,
-        color: scheme.onSurfaceVariant.withValues(alpha: 0.65),
+      hintStyle: const TextStyle(
+        fontFamily: _secondaryFont,
+        fontSize: 13.5,
+        color: _kTextMuted,
       ),
       suffixIcon: suffixIcon,
       prefixIcon: prefixIcon,
       filled: true,
-      fillColor: scheme.surfaceContainerHighest.withValues(alpha: 0.55),
+      fillColor: _kCanvasBg,
       isDense: true,
-      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 15),
       border: OutlineInputBorder(
         borderRadius: radius,
         borderSide: BorderSide.none,
@@ -1054,7 +1490,7 @@ class IzinPageState extends State<IzinPage> {
       ),
       focusedBorder: OutlineInputBorder(
         borderRadius: radius,
-        borderSide: BorderSide(color: scheme.primary, width: 1.5),
+        borderSide: const BorderSide(color: _kBurgundy, width: 1.5),
       ),
       errorBorder: OutlineInputBorder(
         borderRadius: radius,
@@ -1064,7 +1500,11 @@ class IzinPageState extends State<IzinPage> {
         borderRadius: radius,
         borderSide: BorderSide(color: scheme.error, width: 1.5),
       ),
-      errorStyle: TextStyle(fontSize: 11.5, color: scheme.error),
+      errorStyle: TextStyle(
+        fontFamily: _secondaryFont,
+        fontSize: 11.5,
+        color: scheme.error,
+      ),
     );
   }
 
@@ -1079,7 +1519,11 @@ class IzinPageState extends State<IzinPage> {
           minLines: 3,
           maxLines: 5,
           textCapitalization: TextCapitalization.sentences,
-          style: TextStyle(fontSize: 14, color: scheme.onSurface),
+          style: const TextStyle(
+            fontFamily: _secondaryFont,
+            fontSize: 14,
+            color: _kTextPrimary,
+          ),
           decoration: _inputDecoration(
             scheme,
             hint: 'Tulis ${config.label.toLowerCase()}',
@@ -1107,14 +1551,21 @@ class IzinPageState extends State<IzinPage> {
           controller: _textControllers[config.id],
           readOnly: true,
           onTap: () => _pickDate(config),
-          style: TextStyle(fontSize: 14, color: scheme.onSurface),
+          style: const TextStyle(
+            fontFamily: _primaryFont,
+            fontSize: 14,
+            fontWeight: FontWeight.w600,
+            fontVariations: [FontVariation('wght', 600)],
+            color: _kTextPrimary,
+            fontFeatures: [FontFeature.tabularFigures()],
+          ),
           decoration: _inputDecoration(
             scheme,
             hint: 'Pilih ${config.label.toLowerCase()}',
-            suffixIcon: Icon(
+            suffixIcon: const Icon(
               Icons.calendar_month_rounded,
               size: 20,
-              color: scheme.primary,
+              color: _kBurgundy,
             ),
           ),
           validator: (_) {
@@ -1142,7 +1593,6 @@ class IzinPageState extends State<IzinPage> {
         _buildFieldLabel(config, scheme),
         if (options.isEmpty)
           _buildInfoBox(
-            scheme,
             Icons.list_alt_rounded,
             config.tipe == 'master_cuti'
                 ? 'Belum ada master jenis cuti dari HRD.'
@@ -1152,16 +1602,22 @@ class IzinPageState extends State<IzinPage> {
           DropdownButtonFormField<String>(
             initialValue: validValue,
             isExpanded: true,
-            style: TextStyle(fontSize: 14, color: scheme.onSurface),
-            icon: Icon(
+            style: const TextStyle(
+              fontFamily: _primaryFont,
+              fontSize: 14,
+              fontWeight: FontWeight.w600,
+              fontVariations: [FontVariation('wght', 600)],
+              color: _kTextPrimary,
+            ),
+            icon: const Icon(
               Icons.keyboard_arrow_down_rounded,
-              color: scheme.onSurfaceVariant,
+              color: _kBurgundy,
             ),
             decoration: _inputDecoration(
               scheme,
               hint: 'Pilih ${config.label.toLowerCase()}',
             ),
-            dropdownColor: scheme.surfaceContainerHigh,
+            dropdownColor: Colors.white,
             borderRadius: BorderRadius.circular(16),
             items: options
                 .map(
@@ -1226,9 +1682,7 @@ class IzinPageState extends State<IzinPage> {
                       vertical: 14,
                     ),
                     decoration: BoxDecoration(
-                      color: scheme.surfaceContainerHighest.withValues(
-                        alpha: 0.55,
-                      ),
+                      color: _kCanvasBg,
                       borderRadius: BorderRadius.circular(16),
                       border: Border.all(
                         color: field.hasError
@@ -1239,10 +1693,10 @@ class IzinPageState extends State<IzinPage> {
                     ),
                     child: Row(
                       children: [
-                        Icon(
+                        const Icon(
                           Icons.attach_file_rounded,
                           size: 20,
-                          color: scheme.primary,
+                          color: _kBurgundy,
                         ),
                         const SizedBox(width: 12),
                         Expanded(
@@ -1252,11 +1706,14 @@ class IzinPageState extends State<IzinPage> {
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
                             style: TextStyle(
-                              fontSize: 13,
-                              fontWeight: FontWeight.w600,
-                              color: file == null
-                                  ? scheme.onSurfaceVariant
-                                  : scheme.onSurface,
+                              fontFamily: file == null
+                                  ? _secondaryFont
+                                  : _primaryFont,
+                              fontSize: 13.5,
+                              fontWeight: file == null
+                                  ? FontWeight.w400
+                                  : FontWeight.w600,
+                              color: file == null ? _kTextMuted : _kTextPrimary,
                             ),
                           ),
                         ),
@@ -1267,20 +1724,20 @@ class IzinPageState extends State<IzinPage> {
                               setState(() => _selectedFiles.remove(config.id));
                               field.didChange(null);
                             },
-                            child: Padding(
-                              padding: const EdgeInsets.all(4),
+                            child: const Padding(
+                              padding: EdgeInsets.all(4),
                               child: Icon(
                                 Icons.close_rounded,
                                 size: 18,
-                                color: scheme.onSurfaceVariant,
+                                color: _kTextMuted,
                               ),
                             ),
                           )
                         else
-                          Icon(
+                          const Icon(
                             Icons.add_rounded,
                             size: 20,
-                            color: scheme.onSurfaceVariant,
+                            color: _kBurgundy,
                           ),
                       ],
                     ),
@@ -1291,7 +1748,11 @@ class IzinPageState extends State<IzinPage> {
                     padding: const EdgeInsets.only(left: 12, top: 6),
                     child: Text(
                       field.errorText!,
-                      style: TextStyle(fontSize: 11.5, color: scheme.error),
+                      style: TextStyle(
+                        fontFamily: _secondaryFont,
+                        fontSize: 11.5,
+                        color: scheme.error,
+                      ),
                     ),
                   ),
               ],
@@ -1302,26 +1763,27 @@ class IzinPageState extends State<IzinPage> {
     );
   }
 
-  Widget _buildInfoBox(ColorScheme scheme, IconData icon, String text) {
+  Widget _buildInfoBox(IconData icon, String text) {
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: scheme.secondaryContainer.withValues(alpha: 0.55),
+        color: _kCanvasBg,
         borderRadius: BorderRadius.circular(16),
       ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Icon(icon, size: 18, color: scheme.onSecondaryContainer),
+          Icon(icon, size: 18, color: _kBurgundy),
           const SizedBox(width: 10),
           Expanded(
             child: Text(
               text,
-              style: TextStyle(
+              style: const TextStyle(
+                fontFamily: _secondaryFont,
                 fontSize: 12.5,
                 height: 1.45,
-                color: scheme.onSecondaryContainer,
+                color: _kTextMuted,
               ),
             ),
           ),
@@ -1342,43 +1804,44 @@ class IzinPageState extends State<IzinPage> {
       isScrollControlled: true,
       useSafeArea: true,
       showDragHandle: true,
-      backgroundColor: scheme.surfaceContainerLow,
+      backgroundColor: _kCanvasBg,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
       ),
       builder: (ctx) {
-        final sheetScheme = Theme.of(ctx).colorScheme;
-
         return ConstrainedBox(
           constraints: BoxConstraints(
             maxHeight: MediaQuery.of(ctx).size.height * 0.78,
           ),
           child: Padding(
-            padding: const EdgeInsets.fromLTRB(20, 0, 20, 24),
+            padding: const EdgeInsets.fromLTRB(22, 0, 22, 24),
             child: Column(
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
+                const Text(
                   'Jatah & Sisa Cuti',
                   style: TextStyle(
+                    fontFamily: _primaryFont,
                     fontSize: 17,
                     fontWeight: FontWeight.w800,
-                    color: sheetScheme.onSurface,
+                    fontVariations: [FontVariation('wght', 800)],
+                    color: _kMaroonDeep,
+                    letterSpacing: -0.2,
                   ),
                 ),
-                const SizedBox(height: 4),
-                Text(
+                const SizedBox(height: 3),
+                const Text(
                   'Terpakai dihitung dari pengajuan Disetujui & Menunggu.',
                   style: TextStyle(
-                    fontSize: 12,
-                    color: sheetScheme.onSurfaceVariant,
+                    fontFamily: _secondaryFont,
+                    fontSize: 12.5,
+                    color: _kTextMuted,
                   ),
                 ),
                 const SizedBox(height: 16),
                 if (_masterCuti.isEmpty)
                   _buildInfoBox(
-                    sheetScheme,
                     Icons.info_outline_rounded,
                     'Belum ada master cuti yang diatur HRD.',
                   )
@@ -1387,14 +1850,13 @@ class IzinPageState extends State<IzinPage> {
                     child: ListView.separated(
                       shrinkWrap: true,
                       itemCount: _masterCuti.length,
-                      separatorBuilder: (_, _) => const SizedBox(height: 10),
+                      separatorBuilder: (_, __) => const SizedBox(height: 10),
                       itemBuilder: (_, index) {
                         final master = _masterCuti[index];
-                        final nama = (master['nama_cuti'] ?? '')
-                            .toString()
-                            .trim();
+                        final nama =
+                            (master['nama_cuti'] ?? '').toString().trim();
                         return _buildSisaItem(
-                          sheetScheme,
+                          scheme,
                           nama: nama,
                           info: _sisaCuti[nama],
                         );
@@ -1424,25 +1886,31 @@ class IzinPageState extends State<IzinPage> {
     final String badgeText;
 
     if (unlimited) {
-      badgeBg = scheme.tertiaryContainer;
-      badgeFg = scheme.onTertiaryContainer;
+      badgeBg = const Color(0xFFEDE7F6);
+      badgeFg = const Color(0xFF4527A0);
       badgeText = 'Tanpa Batas';
     } else if (sisa > 0) {
-      badgeBg = scheme.primaryContainer;
-      badgeFg = scheme.onPrimaryContainer;
+      badgeBg = const Color(0xFFE8F5E9);
+      badgeFg = const Color(0xFF1B6E35);
       badgeText = '$sisa Hari';
     } else {
-      badgeBg = scheme.errorContainer;
-      badgeFg = scheme.onErrorContainer;
+      badgeBg = const Color(0xFFFCE4E6);
+      badgeFg = const Color(0xFF8C2D38);
       badgeText = '$sisa Hari';
     }
 
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
       decoration: BoxDecoration(
-        color: scheme.surface,
-        borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: scheme.outlineVariant.withValues(alpha: 0.7)),
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(20),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.03),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
       ),
       child: Row(
         children: [
@@ -1452,18 +1920,22 @@ class IzinPageState extends State<IzinPage> {
               children: [
                 Text(
                   nama.isEmpty ? '-' : nama,
-                  style: TextStyle(
-                    fontSize: 13.5,
+                  style: const TextStyle(
+                    fontFamily: _primaryFont,
+                    fontSize: 14,
                     fontWeight: FontWeight.w700,
-                    color: scheme.onSurface,
+                    fontVariations: [FontVariation('wght', 700)],
+                    color: _kTextPrimary,
                   ),
                 ),
                 const SizedBox(height: 3),
                 Text(
                   'Siklus: $siklus • Terpakai: $terpakai hari',
-                  style: TextStyle(
-                    fontSize: 11,
-                    color: scheme.onSurfaceVariant,
+                  style: const TextStyle(
+                    fontFamily: _secondaryFont,
+                    fontSize: 11.5,
+                    color: _kTextMuted,
+                    fontFeatures: [FontFeature.tabularFigures()],
                   ),
                 ),
               ],
@@ -1474,14 +1946,17 @@ class IzinPageState extends State<IzinPage> {
             padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
             decoration: BoxDecoration(
               color: badgeBg,
-              borderRadius: BorderRadius.circular(20),
+              borderRadius: BorderRadius.circular(10),
             ),
             child: Text(
               badgeText,
               style: TextStyle(
+                fontFamily: _primaryFont,
                 fontSize: 11,
                 fontWeight: FontWeight.w700,
+                fontVariations: const [FontVariation('wght', 700)],
                 color: badgeFg,
+                fontFeatures: const [FontFeature.tabularFigures()],
               ),
             ),
           ),
@@ -1498,34 +1973,36 @@ class IzinPageState extends State<IzinPage> {
       isScrollControlled: true,
       useSafeArea: true,
       showDragHandle: true,
-      backgroundColor: scheme.surfaceContainerLow,
+      backgroundColor: _kCanvasBg,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
       ),
       builder: (ctx) {
-        final sheetScheme = Theme.of(ctx).colorScheme;
-
         return FractionallySizedBox(
           heightFactor: 0.9,
           child: Padding(
-            padding: const EdgeInsets.fromLTRB(20, 0, 20, 20),
+            padding: const EdgeInsets.fromLTRB(22, 0, 22, 20),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
+                const Text(
                   'Riwayat Pengajuan',
                   style: TextStyle(
+                    fontFamily: _primaryFont,
                     fontSize: 17,
                     fontWeight: FontWeight.w800,
-                    color: sheetScheme.onSurface,
+                    fontVariations: [FontVariation('wght', 800)],
+                    color: _kMaroonDeep,
+                    letterSpacing: -0.2,
                   ),
                 ),
-                const SizedBox(height: 4),
-                Text(
+                const SizedBox(height: 3),
+                const Text(
                   'Seluruh cuti/izin yang pernah Anda ajukan.',
                   style: TextStyle(
-                    fontSize: 12,
-                    color: sheetScheme.onSurfaceVariant,
+                    fontFamily: _secondaryFont,
+                    fontSize: 12.5,
+                    color: _kTextMuted,
                   ),
                 ),
                 const SizedBox(height: 16),
@@ -1534,18 +2011,19 @@ class IzinPageState extends State<IzinPage> {
                       ? Center(
                           child: Column(
                             mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
+                            children: const [
                               Icon(
                                 Icons.inbox_outlined,
                                 size: 44,
-                                color: sheetScheme.outline,
+                                color: Color(0xFFB8B0AD),
                               ),
-                              const SizedBox(height: 10),
+                              SizedBox(height: 10),
                               Text(
                                 'Belum ada riwayat pengajuan.',
                                 style: TextStyle(
+                                  fontFamily: _secondaryFont,
                                   fontSize: 13,
-                                  color: sheetScheme.onSurfaceVariant,
+                                  color: _kTextMuted,
                                 ),
                               ),
                             ],
@@ -1554,10 +2032,10 @@ class IzinPageState extends State<IzinPage> {
                       : ListView.separated(
                           padding: const EdgeInsets.only(bottom: 8),
                           itemCount: _riwayat.length,
-                          separatorBuilder: (_, _) =>
+                          separatorBuilder: (_, __) =>
                               const SizedBox(height: 12),
                           itemBuilder: (_, index) =>
-                              _buildRiwayatCard(sheetScheme, _riwayat[index]),
+                              _buildRiwayatCard(scheme, _riwayat[index]),
                         ),
                 ),
               ],
@@ -1568,7 +2046,7 @@ class IzinPageState extends State<IzinPage> {
     );
   }
 
-  Widget _buildRiwayatCard(ColorScheme scheme, Map<String, dynamic> row) {
+  Widget _buildRiwayatCard(ColorScheme scheme, _DataMap row) {
     final status = (row['status_pengajuan'] ?? 'Menunggu').toString().trim();
     final (statusBg, statusFg) = _statusColors(status, scheme);
     final durasi = _toInt(row['durasi_hari'], 0);
@@ -1600,9 +2078,10 @@ class IzinPageState extends State<IzinPage> {
                 Expanded(
                   child: Text(
                     config.label,
-                    style: TextStyle(
+                    style: const TextStyle(
+                      fontFamily: _secondaryFont,
                       fontSize: 11.5,
-                      color: scheme.onSurfaceVariant,
+                      color: _kTextMuted,
                     ),
                   ),
                 ),
@@ -1616,19 +2095,21 @@ class IzinPageState extends State<IzinPage> {
                     ),
                     child: Row(
                       mainAxisSize: MainAxisSize.min,
-                      children: [
+                      children: const [
                         Icon(
                           Icons.open_in_new_rounded,
                           size: 13,
-                          color: scheme.primary,
+                          color: _kBurgundy,
                         ),
-                        const SizedBox(width: 4),
+                        SizedBox(width: 4),
                         Text(
                           'Lihat file',
                           style: TextStyle(
+                            fontFamily: _primaryFont,
                             fontSize: 11.5,
                             fontWeight: FontWeight.w700,
-                            color: scheme.primary,
+                            fontVariations: [FontVariation('wght', 700)],
+                            color: _kBurgundy,
                           ),
                         ),
                       ],
@@ -1650,19 +2131,22 @@ class IzinPageState extends State<IzinPage> {
                   width: 118,
                   child: Text(
                     config.label,
-                    style: TextStyle(
+                    style: const TextStyle(
+                      fontFamily: _secondaryFont,
                       fontSize: 11.5,
-                      color: scheme.onSurfaceVariant,
+                      color: _kTextMuted,
                     ),
                   ),
                 ),
                 Expanded(
                   child: Text(
                     value,
-                    style: TextStyle(
+                    style: const TextStyle(
+                      fontFamily: _primaryFont,
                       fontSize: 12,
                       fontWeight: FontWeight.w600,
-                      color: scheme.onSurface,
+                      fontVariations: [FontVariation('wght', 600)],
+                      color: _kTextPrimary,
                       height: 1.35,
                     ),
                   ),
@@ -1680,10 +2164,12 @@ class IzinPageState extends State<IzinPage> {
           padding: const EdgeInsets.only(top: 6),
           child: Text(
             row['alasan'].toString(),
-            style: TextStyle(
+            style: const TextStyle(
+              fontFamily: _primaryFont,
               fontSize: 12,
               fontWeight: FontWeight.w600,
-              color: scheme.onSurface,
+              fontVariations: [FontVariation('wght', 600)],
+              color: _kTextPrimary,
               height: 1.35,
             ),
           ),
@@ -1694,9 +2180,15 @@ class IzinPageState extends State<IzinPage> {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: scheme.surface,
+        color: Colors.white,
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: scheme.outlineVariant.withValues(alpha: 0.7)),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.03),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -1710,30 +2202,35 @@ class IzinPageState extends State<IzinPage> {
                 ),
                 decoration: BoxDecoration(
                   color: statusBg,
-                  borderRadius: BorderRadius.circular(20),
+                  borderRadius: BorderRadius.circular(10),
                 ),
                 child: Text(
                   status,
                   style: TextStyle(
+                    fontFamily: _primaryFont,
                     fontSize: 10.5,
                     fontWeight: FontWeight.w700,
+                    fontVariations: const [FontVariation('wght', 700)],
                     color: statusFg,
                   ),
                 ),
               ),
               const Spacer(),
-              Icon(
+              const Icon(
                 Icons.event_available_rounded,
                 size: 14,
-                color: scheme.onSurfaceVariant,
+                color: _kTextMuted,
               ),
               const SizedBox(width: 4),
               Text(
                 '$durasi hari',
-                style: TextStyle(
+                style: const TextStyle(
+                  fontFamily: _primaryFont,
                   fontSize: 11.5,
                   fontWeight: FontWeight.w700,
-                  color: scheme.onSurfaceVariant,
+                  fontVariations: [FontVariation('wght', 700)],
+                  color: _kTextMuted,
+                  fontFeatures: [FontFeature.tabularFigures()],
                 ),
               ),
             ],
@@ -1745,16 +2242,23 @@ class IzinPageState extends State<IzinPage> {
               if (selesai != null && (mulai == null || selesai != mulai))
                 _formatDateDisplay(selesai),
             ].join('  •  '),
-            style: TextStyle(
-              fontSize: 14,
+            style: const TextStyle(
+              fontFamily: _primaryFont,
+              fontSize: 14.5,
               fontWeight: FontWeight.w800,
-              color: scheme.onSurface,
+              fontVariations: [FontVariation('wght', 800)],
+              color: _kMaroonDeep,
+              fontFeatures: [FontFeature.tabularFigures()],
             ),
           ),
           const SizedBox(height: 3),
           Text(
             'Diajukan: $tanggalPengajuan',
-            style: TextStyle(fontSize: 11, color: scheme.onSurfaceVariant),
+            style: const TextStyle(
+              fontFamily: _secondaryFont,
+              fontSize: 11,
+              color: _kTextMuted,
+            ),
           ),
           ...details,
           if (status == 'Menunggu') ...[
@@ -1763,13 +2267,15 @@ class IzinPageState extends State<IzinPage> {
               alignment: Alignment.centerRight,
               child: TextButton.icon(
                 onPressed: () => _batalkanPengajuan(row),
-                icon: Icon(Icons.delete_outline_rounded, size: 16),
+                icon: const Icon(Icons.delete_outline_rounded, size: 16),
                 label: const Text('Batalkan'),
                 style: TextButton.styleFrom(
                   foregroundColor: scheme.error,
                   textStyle: const TextStyle(
+                    fontFamily: _primaryFont,
                     fontSize: 12,
                     fontWeight: FontWeight.w700,
+                    fontVariations: [FontVariation('wght', 700)],
                   ),
                   visualDensity: VisualDensity.compact,
                 ),
@@ -1796,13 +2302,13 @@ class IzinPageState extends State<IzinPage> {
   (Color, Color) _statusColors(String status, ColorScheme scheme) {
     switch (status) {
       case 'Disetujui':
-        return (const Color(0xFFD6F5E0), const Color(0xFF14652F));
+        return (const Color(0xFFE8F5E9), const Color(0xFF1B6E35));
       case 'Ditolak':
         return (scheme.errorContainer, scheme.onErrorContainer);
       case 'Menunggu':
-        return (const Color(0xFFFFEFC2), const Color(0xFF755600));
+        return (const Color(0xFFFFF3CD), const Color(0xFF7A5900));
       default:
-        return (scheme.surfaceContainerHighest, scheme.onSurfaceVariant);
+        return (_kCanvasBg, _kTextMuted);
     }
   }
 
@@ -1816,38 +2322,61 @@ class IzinPageState extends State<IzinPage> {
     return showDialog<void>(
       context: context,
       builder: (ctx) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(28)),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+        backgroundColor: Colors.white,
         icon: Icon(
           isError
               ? Icons.error_outline_rounded
               : Icons.check_circle_outline_rounded,
-          color: isError ? scheme.error : scheme.primary,
+          color: isError ? scheme.error : const Color(0xFF1B6E35),
           size: 34,
         ),
         title: Text(
           title,
           textAlign: TextAlign.center,
-          style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w800),
+          style: const TextStyle(
+            fontFamily: _primaryFont,
+            fontSize: 17,
+            fontWeight: FontWeight.w800,
+            fontVariations: [FontVariation('wght', 800)],
+            color: _kTextPrimary,
+          ),
         ),
         content: Text(
           message,
           textAlign: TextAlign.center,
-          style: TextStyle(
+          style: const TextStyle(
+            fontFamily: _secondaryFont,
             fontSize: 13.5,
             height: 1.5,
-            color: scheme.onSurfaceVariant,
+            color: _kTextMuted,
           ),
         ),
         actionsAlignment: MainAxisAlignment.center,
         actions: [
-          FilledButton(
-            onPressed: () => Navigator.of(ctx).pop(),
-            style: FilledButton.styleFrom(
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(20),
+          GestureDetector(
+            onTap: () => Navigator.of(ctx).pop(),
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 12),
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(14),
+                gradient: const LinearGradient(
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                  colors: [Color(0xFF5A1212), Color(0xFF2B0606)],
+                ),
+              ),
+              child: const Text(
+                'Mengerti',
+                style: TextStyle(
+                  fontFamily: _primaryFont,
+                  fontSize: 13.5,
+                  fontWeight: FontWeight.w700,
+                  fontVariations: [FontVariation('wght', 700)],
+                  color: Colors.white,
+                ),
               ),
             ),
-            child: const Text('Mengerti'),
           ),
         ],
       ),
@@ -1889,10 +2418,10 @@ class IzinPageState extends State<IzinPage> {
     return fallback;
   }
 
-  static Map<String, dynamic> _asMap(dynamic value) {
-    if (value is Map<String, dynamic>) return value;
-    if (value is Map) return Map<String, dynamic>.from(value);
-    return <String, dynamic>{};
+  static _DataMap _asMap(dynamic value) {
+    if (value is _DataMap) return value;
+    if (value is Map) return _DataMap.from(value);
+    return _DataMap();
   }
 }
 
@@ -1914,7 +2443,7 @@ class _FieldConfig {
   final bool wajib;
   final int urutan;
 
-  factory _FieldConfig.fromMap(Map<String, dynamic> map) {
+  factory _FieldConfig.fromMap(_DataMap map) {
     return _FieldConfig(
       id: (map['id'] ?? '').toString(),
       label: (map['label'] ?? '').toString().trim(),

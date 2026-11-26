@@ -1,4 +1,3 @@
-import 'dart:ui';
 import 'dart:async';
 import 'dart:convert';
 
@@ -15,8 +14,6 @@ import 'izin_page.dart';
 import 'kalender_page.dart';
 import 'profile_page.dart';
 import 'session_actions.dart';
-
-typedef _DataMap = Map<String, dynamic>;
 
 class AbsenPage extends StatefulWidget {
   const AbsenPage({super.key});
@@ -56,7 +53,7 @@ class _AbsenPageState extends State<AbsenPage> {
   double _lonKantor = 106.816666;
   int _radiusMaksimal = 100;
   String _namaKantor = 'Kantor Pusat';
-  List<_DataMap> _listKantor = [];
+  List<Map<String, dynamic>> _listKantor = [];
 
   // Data Lokasi User
   Position? _userPosition;
@@ -66,7 +63,7 @@ class _AbsenPageState extends State<AbsenPage> {
   bool _isLoadingKantor = true;
 
   // Data Riwayat Absen Hari Ini
-  List<_DataMap> _riwayatHariIni = [];
+  List<Map<String, dynamic>> _riwayatHariIni = [];
   bool _isLoadingRiwayat = false;
 
   @override
@@ -117,7 +114,7 @@ class _AbsenPageState extends State<AbsenPage> {
   }
 
   /// Menyinkronkan data pengguna dari halaman Profil ke header AbsenPage.
-  void _applyUserUpdate(_DataMap user) {
+  void _applyUserUpdate(Map<String, dynamic> user) {
     if (!mounted) return;
 
     setState(() {
@@ -199,7 +196,7 @@ class _AbsenPageState extends State<AbsenPage> {
     }
   }
 
-  /// Tombol pil pada header untuk tab non-Hero (putih bersih).
+  /// Tombol pil pada header untuk tab non-Absen (putih bersih).
   Widget _buildHeaderAction({
     required String label,
     required VoidCallback onTap,
@@ -219,7 +216,6 @@ class _AbsenPageState extends State<AbsenPage> {
               color: Colors.white,
               fontSize: 12,
               fontWeight: FontWeight.w700,
-              fontVariations: [FontVariation('wght', 700)],
             ),
           ),
         ),
@@ -262,7 +258,7 @@ class _AbsenPageState extends State<AbsenPage> {
     );
   }
 
-  /// Header standar untuk tab Izin dan Profil.
+  /// Header standar untuk tab Izin, Kalender, dan Profil.
   Widget _buildStandardHeader() {
     return Container(
       color: Colors.white,
@@ -282,7 +278,6 @@ class _AbsenPageState extends State<AbsenPage> {
                     fontFamily: _primaryFont,
                     fontSize: 20,
                     fontWeight: FontWeight.w800,
-                    fontVariations: [FontVariation('wght', 800)],
                     color: Color(0xFF4A1010),
                     letterSpacing: 0.6,
                   ),
@@ -322,6 +317,7 @@ class _AbsenPageState extends State<AbsenPage> {
   }
 
   Future<void> _loadUserAndKantor() async {
+    // 1. Ambil data user dari sesi SharedPreferences
     try {
       final prefs = await SharedPreferences.getInstance();
       final userStr = prefs.getString('userLogin');
@@ -339,14 +335,17 @@ class _AbsenPageState extends State<AbsenPage> {
       }
     } catch (_) {}
 
+    // 2. Ambil data kantor dari Supabase API
     try {
       final supabase = Supabase.instance.client;
       final List<dynamic> dataKantor =
           await supabase.from('kantor').select('*');
 
       if (dataKantor.isNotEmpty && mounted) {
-        _listKantor = dataKantor.map((e) => _DataMap.from(e)).toList();
+        _listKantor =
+            dataKantor.map((e) => Map<String, dynamic>.from(e)).toList();
 
+        // Cari kantor cabang yang ditugaskan ke user
         final assigned = _listKantor.firstWhere(
           (k) => k['nama'] == _userCabang,
           orElse: () => _listKantor.first,
@@ -375,9 +374,11 @@ class _AbsenPageState extends State<AbsenPage> {
       }
     }
 
+    // 3. Deteksi lokasi GPS user terkini
     _getCurrentLocation();
   }
 
+  /// Memuat daftar absensi hari ini untuk user dari tabel absensi Supabase
   Future<void> _loadRiwayatHariIni() async {
     if (_userId == null) return;
     setState(() => _isLoadingRiwayat = true);
@@ -396,7 +397,8 @@ class _AbsenPageState extends State<AbsenPage> {
 
       if (mounted) {
         setState(() {
-          _riwayatHariIni = rows.map((e) => _DataMap.from(e)).toList();
+          _riwayatHariIni =
+              rows.map((e) => Map<String, dynamic>.from(e)).toList();
           _isLoadingRiwayat = false;
         });
       }
@@ -408,6 +410,7 @@ class _AbsenPageState extends State<AbsenPage> {
     }
   }
 
+  /// Mendeteksi posisi GPS pengguna & menghitung jarak ke radius kantor
   Future<void> _getCurrentLocation() async {
     if (_isLoadingLocation) return;
     setState(() {
@@ -505,6 +508,7 @@ class _AbsenPageState extends State<AbsenPage> {
     return '${hari[date.weekday - 1]}, ${date.day} ${bulan[date.month - 1]} ${date.year}';
   }
 
+  /// Menyimpan rekaman absensi ke tabel absensi di Supabase
   Future<void> _simpanAbsensi(String tipe) async {
     if (_userId == null) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -661,6 +665,7 @@ class _AbsenPageState extends State<AbsenPage> {
     }
   }
 
+  /// Bottom Sheet pemilihan jenis absensi
   void _showPilihTipeAbsenSheet() {
     showModalBottomSheet(
       context: context,
@@ -696,7 +701,6 @@ class _AbsenPageState extends State<AbsenPage> {
                     fontFamily: _primaryFont,
                     fontSize: 18,
                     fontWeight: FontWeight.w700,
-                    fontVariations: [FontVariation('wght', 700)],
                     color: Color(0xFF1E1E1E),
                   ),
                   textAlign: TextAlign.center,
@@ -788,7 +792,6 @@ class _AbsenPageState extends State<AbsenPage> {
                       fontFamily: _primaryFont,
                       fontSize: 14,
                       fontWeight: FontWeight.w700,
-                      fontVariations: [FontVariation('wght', 700)],
                       color: Color(0xFF1E1E1E),
                     ),
                   ),
@@ -814,6 +817,7 @@ class _AbsenPageState extends State<AbsenPage> {
     );
   }
 
+  /// Tab Utama (Absen) dengan Hero Gradient Header yang presisi & tipografi hidup
   Widget _buildAbsenTab(
     String jamMenit,
     String detik,
@@ -831,6 +835,10 @@ class _AbsenPageState extends State<AbsenPage> {
         physics: const AlwaysScrollableScrollPhysics(),
         child: Stack(
           children: [
+            // ==========================================================
+            // LAYER BACKGROUND GRADASI HEADER (ZIEDA BURGUNDY PALETTE)
+            // Tinggi dipaskan agar kartu jam bertumpu tepat di garis bawahnya
+            // ==========================================================
             Container(
               height: 212 + topSafePadding,
               width: double.infinity,
@@ -839,9 +847,9 @@ class _AbsenPageState extends State<AbsenPage> {
                   begin: Alignment.topLeft,
                   end: Alignment.bottomRight,
                   colors: [
-                    Color(0xFF330808),
-                    Color(0xFF5E1212),
-                    Color(0xFF8F382B),
+                    Color(0xFF330808), // Deep Espresso Maroon
+                    Color(0xFF5E1212), // Rich Burgundy
+                    Color(0xFF8F382B), // Warm Terracotta
                   ],
                   stops: [0.0, 0.55, 1.0],
                 ),
@@ -851,6 +859,7 @@ class _AbsenPageState extends State<AbsenPage> {
               ),
               child: Stack(
                 children: [
+                  // Aksen cahaya lembut di sudut kanan bawah header
                   Positioned(
                     right: -25,
                     bottom: -25,
@@ -871,6 +880,10 @@ class _AbsenPageState extends State<AbsenPage> {
                 ],
               ),
             ),
+
+            // ==========================================================
+            // KONTEN UTAMA DI ATAS BACKGROUND
+            // ==========================================================
             Padding(
               padding: EdgeInsets.fromLTRB(
                 22.0,
@@ -881,6 +894,7 @@ class _AbsenPageState extends State<AbsenPage> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
+                  // 1. TOP BAR: Tulisan ZIEDA ABSEN murni tanpa box/lingkaran
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     crossAxisAlignment: CrossAxisAlignment.center,
@@ -891,11 +905,12 @@ class _AbsenPageState extends State<AbsenPage> {
                           fontFamily: _primaryFont,
                           fontSize: 15,
                           fontWeight: FontWeight.w800,
-                          fontVariations: [FontVariation('wght', 800)],
                           color: Colors.white,
                           letterSpacing: 1.4,
                         ),
                       ),
+
+                      // Tombol Admin & Logout
                       Row(
                         mainAxisSize: MainAxisSize.min,
                         children: [
@@ -916,7 +931,10 @@ class _AbsenPageState extends State<AbsenPage> {
                       ),
                     ],
                   ),
+
                   const SizedBox(height: 18),
+
+                  // 2. GREETING TIPOGRAFI KONTRAS (Secondary Regular + Primary Bold)
                   RichText(
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
@@ -940,7 +958,6 @@ class _AbsenPageState extends State<AbsenPage> {
                           style: const TextStyle(
                             fontFamily: _primaryFont,
                             fontWeight: FontWeight.w800,
-                            fontVariations: [FontVariation('wght', 800)],
                             color: Colors.white,
                           ),
                         ),
@@ -957,7 +974,10 @@ class _AbsenPageState extends State<AbsenPage> {
                       color: Colors.white.withValues(alpha: 0.80),
                     ),
                   ),
+
                   const SizedBox(height: 22),
+
+                  // 3. OVERLAPPING HERO CARD: JAM HIDUP TANPA GARIS PEMISAH
                   Container(
                     width: double.infinity,
                     padding: const EdgeInsets.symmetric(
@@ -978,6 +998,7 @@ class _AbsenPageState extends State<AbsenPage> {
                     child: Row(
                       crossAxisAlignment: CrossAxisAlignment.center,
                       children: [
+                        // Sisi Kiri: Tipografi Jam Hidup (Jam:Menit besar + Detik & WIB)
                         Expanded(
                           flex: 6,
                           child: Column(
@@ -1003,7 +1024,6 @@ class _AbsenPageState extends State<AbsenPage> {
                                       fontFamily: _primaryFont,
                                       fontSize: 40,
                                       fontWeight: FontWeight.w800,
-                                      fontVariations: [FontVariation('wght', 800)],
                                       color: Color(0xFF230505),
                                       letterSpacing: -1.4,
                                       height: 1.0,
@@ -1032,7 +1052,6 @@ class _AbsenPageState extends State<AbsenPage> {
                                       fontFamily: _secondaryFont,
                                       fontSize: 11.5,
                                       fontWeight: FontWeight.w700,
-                                      fontVariations: [FontVariation('wght', 700)],
                                       color: Colors.grey.shade500,
                                     ),
                                   ),
@@ -1041,7 +1060,10 @@ class _AbsenPageState extends State<AbsenPage> {
                             ],
                           ),
                         ),
+
                         const SizedBox(width: 12),
+
+                        // Sisi Kanan: Status Radius & Kantor (Rata kanan, bersih tanpa garis)
                         Expanded(
                           flex: 5,
                           child: Column(
@@ -1070,7 +1092,6 @@ class _AbsenPageState extends State<AbsenPage> {
                                     fontFamily: _primaryFont,
                                     fontSize: 10.5,
                                     fontWeight: FontWeight.w700,
-                                    fontVariations: [FontVariation('wght', 700)],
                                     color: _userPosition == null
                                         ? Colors.grey.shade700
                                         : (_isInsideRadius
@@ -1089,7 +1110,6 @@ class _AbsenPageState extends State<AbsenPage> {
                                   fontFamily: _primaryFont,
                                   fontSize: 13.5,
                                   fontWeight: FontWeight.w700,
-                                  fontVariations: [FontVariation('wght', 700)],
                                   color: Color(0xFF1E1E1E),
                                 ),
                               ),
@@ -1113,7 +1133,10 @@ class _AbsenPageState extends State<AbsenPage> {
                       ],
                     ),
                   ),
+
                   const SizedBox(height: 22),
+
+                  // 4. SECTION HEADER PETA
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
@@ -1123,7 +1146,6 @@ class _AbsenPageState extends State<AbsenPage> {
                           fontFamily: _primaryFont,
                           fontSize: 16,
                           fontWeight: FontWeight.w700,
-                          fontVariations: [FontVariation('wght', 700)],
                           color: Color(0xFF1E1E1E),
                           letterSpacing: -0.2,
                         ),
@@ -1136,7 +1158,6 @@ class _AbsenPageState extends State<AbsenPage> {
                             fontFamily: _primaryFont,
                             fontSize: 12.5,
                             fontWeight: FontWeight.w700,
-                            fontVariations: [FontVariation('wght', 700)],
                             color: Color(0xFF5E1212),
                           ),
                         ),
@@ -1144,6 +1165,8 @@ class _AbsenPageState extends State<AbsenPage> {
                     ],
                   ),
                   const SizedBox(height: 12),
+
+                  // 5. KOTAK PETA INTERAKTIF
                   Container(
                     height: 280,
                     width: double.infinity,
@@ -1262,7 +1285,6 @@ class _AbsenPageState extends State<AbsenPage> {
                                                   fontFamily: _primaryFont,
                                                   fontSize: 9,
                                                   fontWeight: FontWeight.w700,
-                                                  fontVariations: [FontVariation('wght', 700)],
                                                   color: Color(0xFF4A1010),
                                                 ),
                                                 maxLines: 1,
@@ -1310,7 +1332,6 @@ class _AbsenPageState extends State<AbsenPage> {
                                                     fontFamily: _primaryFont,
                                                     fontSize: 9,
                                                     fontWeight: FontWeight.w700,
-                                                    fontVariations: [FontVariation('wght', 700)],
                                                     color: Colors.white,
                                                   ),
                                                 ),
@@ -1328,6 +1349,8 @@ class _AbsenPageState extends State<AbsenPage> {
                                   ),
                                 ],
                               ),
+
+                        // Tombol Cari GPS Mengambang
                         Positioned(
                           top: 12,
                           right: 12,
@@ -1361,7 +1384,10 @@ class _AbsenPageState extends State<AbsenPage> {
                       ],
                     ),
                   ),
+
                   const SizedBox(height: 18),
+
+                  // 6. TOMBOL ABSEN UTAMA
                   GestureDetector(
                     onTap: _handleAbsenClick,
                     child: Container(
@@ -1417,7 +1443,6 @@ class _AbsenPageState extends State<AbsenPage> {
                               fontFamily: _primaryFont,
                               fontSize: 15.5,
                               fontWeight: FontWeight.w700,
-                              fontVariations: [FontVariation('wght', 700)],
                               color: Colors.white,
                               letterSpacing: 0.2,
                             ),
@@ -1426,7 +1451,10 @@ class _AbsenPageState extends State<AbsenPage> {
                       ),
                     ),
                   ),
+
                   const SizedBox(height: 24),
+
+                  // 7. SECTION HEADER RIWAYAT ABSEN
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
@@ -1436,7 +1464,6 @@ class _AbsenPageState extends State<AbsenPage> {
                           fontFamily: _primaryFont,
                           fontSize: 16,
                           fontWeight: FontWeight.w700,
-                          fontVariations: [FontVariation('wght', 700)],
                           color: Color(0xFF1E1E1E),
                           letterSpacing: -0.2,
                         ),
@@ -1449,7 +1476,6 @@ class _AbsenPageState extends State<AbsenPage> {
                             fontFamily: _primaryFont,
                             fontSize: 12.5,
                             fontWeight: FontWeight.w700,
-                            fontVariations: [FontVariation('wght', 700)],
                             color: Color(0xFF5E1212),
                           ),
                         ),
@@ -1457,6 +1483,8 @@ class _AbsenPageState extends State<AbsenPage> {
                     ],
                   ),
                   const SizedBox(height: 12),
+
+                  // 8. KARTU RIWAYAT ABSEN HARI INI
                   Container(
                     width: double.infinity,
                     padding: const EdgeInsets.all(18.0),
@@ -1575,7 +1603,6 @@ class _AbsenPageState extends State<AbsenPage> {
                                                 fontFamily: _primaryFont,
                                                 fontSize: 14,
                                                 fontWeight: FontWeight.w700,
-                                                fontVariations: [FontVariation('wght', 700)],
                                                 color: Color(0xFF1E1E1E),
                                               ),
                                             ),
@@ -1603,7 +1630,6 @@ class _AbsenPageState extends State<AbsenPage> {
                                               fontFamily: _primaryFont,
                                               fontSize: 13.5,
                                               fontWeight: FontWeight.w700,
-                                              fontVariations: [FontVariation('wght', 700)],
                                               color: Color(0xFF230505),
                                               fontFeatures: [
                                                 FontFeature.tabularFigures(),
@@ -1630,7 +1656,6 @@ class _AbsenPageState extends State<AbsenPage> {
                                                 fontFamily: _primaryFont,
                                                 fontSize: 10,
                                                 fontWeight: FontWeight.w700,
-                                                fontVariations: [FontVariation('wght', 700)],
                                                 color: status.toLowerCase() ==
                                                         'terlambat'
                                                     ? Colors.amber.shade900
@@ -1661,15 +1686,14 @@ class _AbsenPageState extends State<AbsenPage> {
     final String detik = _formatDigit(_currentTime.second);
     final String tanggalFormatted = _formatTanggal(_currentTime);
 
-    final bool usesHeroHeader = _currentNavIndex == 0 || _currentNavIndex == 2;
-
     return Scaffold(
-      backgroundColor:
-          usesHeroHeader ? const Color(0xFFF7F5F4) : Colors.white,
+      backgroundColor: _currentNavIndex == 0
+          ? const Color(0xFFF7F5F4)
+          : Colors.white,
       body: Column(
         children: [
-          // Header standar hanya ditampilkan untuk tab selain Absen (0) dan Kalender (2)
-          if (!usesHeroHeader)
+          // Header standar hanya ditampilkan untuk tab selain Absen (Izin, Kalender, Profil)
+          if (_currentNavIndex != 0)
             SafeArea(
               bottom: false,
               child: _buildStandardHeader(),
@@ -1680,12 +1704,7 @@ class _AbsenPageState extends State<AbsenPage> {
               children: [
                 _buildAbsenTab(jamMenit, detik, tanggalFormatted),
                 IzinPage(key: _izinKey),
-                KalenderPage(
-                  key: _kalenderKey,
-                  isAdmin: _isAdmin,
-                  onOpenAdmin: _openAdminPanel,
-                  onLogout: () => logoutToLogin(context),
-                ),
+                KalenderPage(key: _kalenderKey),
                 ProfilePage(
                   key: _profileKey,
                   onUserUpdated: _applyUserUpdate,
@@ -1695,6 +1714,10 @@ class _AbsenPageState extends State<AbsenPage> {
           ),
         ],
       ),
+
+      // ==========================================
+      // BOTTOM NAVIGATION BAR
+      // ==========================================
       bottomNavigationBar: Container(
         decoration: const BoxDecoration(
           color: Colors.white,
@@ -1725,7 +1748,6 @@ class _AbsenPageState extends State<AbsenPage> {
           selectedLabelStyle: const TextStyle(
             fontFamily: _primaryFont,
             fontWeight: FontWeight.w700,
-            fontVariations: [FontVariation('wght', 700)],
             fontSize: 12,
           ),
           unselectedLabelStyle: const TextStyle(
