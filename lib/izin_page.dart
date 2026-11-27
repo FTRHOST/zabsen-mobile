@@ -362,7 +362,25 @@ class IzinPageState extends State<IzinPage> {
                   primary: _kBurgundy,
                   onPrimary: Colors.white,
                   surface: Colors.white,
+                  surfaceContainerHigh: Colors.white,
+                  surfaceContainerHighest: Colors.white,
+                  onSurface: _kTextPrimary,
+                  onSurfaceVariant: _kTextMuted,
                 ),
+            datePickerTheme: DatePickerThemeData(
+              backgroundColor: Colors.white,
+              surfaceTintColor: Colors.transparent,
+              headerBackgroundColor: _kBurgundy,
+              headerForegroundColor: Colors.white,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(24),
+              ),
+              dayStyle: const TextStyle(
+                fontFamily: _primaryFont,
+                fontWeight: FontWeight.w600,
+              ),
+              todayBorder: const BorderSide(color: _kBurgundy, width: 1.5),
+            ),
           ),
           child: child!,
         );
