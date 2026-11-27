@@ -134,36 +134,60 @@ class _AbsenPageState extends State<AbsenPage> {
       showDialog(
         context: context,
         builder: (ctx) => AlertDialog(
+          backgroundColor: Colors.white,
+          surfaceTintColor: Colors.transparent,
           shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(16),
+            borderRadius: BorderRadius.circular(24),
           ),
-          title: const Row(
-            children: [
-              Icon(
-                Icons.admin_panel_settings_outlined,
-                color: Color(0xFF4A1010),
-              ),
-              SizedBox(width: 8),
-              Text(
-                'Panel Admin',
-                style: TextStyle(fontFamily: _primaryFont, fontSize: 18),
-              ),
-            ],
+          icon: const Icon(
+            Icons.admin_panel_settings_outlined,
+            color: Color(0xFF5E1212),
+            size: 32,
+          ),
+          title: const Text(
+            'Panel Admin',
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              fontFamily: _primaryFont,
+              fontSize: 17,
+              fontWeight: FontWeight.w800,
+              color: Color(0xFF1E1E1E),
+            ),
           ),
           content: const Text(
             'URL panel admin web belum dikonfigurasi.\n\n'
             'Isi konstanta kAdminPanelUrl pada lib/app_config.dart dengan '
             'alamat web dashboard Zieda Absen.',
-            style: TextStyle(fontFamily: _secondaryFont, fontSize: 14),
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              fontFamily: _secondaryFont,
+              fontSize: 13.5,
+              height: 1.5,
+              color: Color(0xFF6E6E6E),
+            ),
           ),
+          actionsAlignment: MainAxisAlignment.center,
           actions: [
-            TextButton(
-              onPressed: () => Navigator.of(ctx).pop(),
-              child: const Text(
-                'OK',
-                style: TextStyle(
-                  fontFamily: _primaryFont,
-                  color: Color(0xFF4A1010),
+            GestureDetector(
+              onTap: () => Navigator.of(ctx).pop(),
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 12),
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(14),
+                  gradient: const LinearGradient(
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                    colors: [Color(0xFF5A1212), Color(0xFF2B0606)],
+                  ),
+                ),
+                child: const Text(
+                  'Mengerti',
+                  style: TextStyle(
+                    fontFamily: _primaryFont,
+                    fontSize: 13.5,
+                    fontWeight: FontWeight.w700,
+                    color: Colors.white,
+                  ),
                 ),
               ),
             ),
@@ -525,29 +549,62 @@ class _AbsenPageState extends State<AbsenPage> {
         context: context,
         barrierDismissible: false,
         builder: (ctx) => AlertDialog(
+          backgroundColor: Colors.white,
+          surfaceTintColor: Colors.transparent,
           shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(16),
+            borderRadius: BorderRadius.circular(24),
+          ),
+          icon: const Icon(
+            Icons.lock_clock_outlined,
+            color: Color(0xFF8F382B),
+            size: 32,
           ),
           title: const Text(
             'Sesi Login Berakhir',
-            style: TextStyle(fontFamily: _primaryFont),
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              fontFamily: _primaryFont,
+              fontSize: 17,
+              fontWeight: FontWeight.w800,
+              color: Color(0xFF1E1E1E),
+            ),
           ),
           content: const Text(
             'Sesi keamanan Anda sudah berakhir. Silakan login kembali untuk '
             'melanjutkan absensi.',
-            style: TextStyle(fontFamily: _secondaryFont, fontSize: 14),
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              fontFamily: _secondaryFont,
+              fontSize: 13.5,
+              height: 1.5,
+              color: Color(0xFF6E6E6E),
+            ),
           ),
+          actionsAlignment: MainAxisAlignment.center,
           actions: [
-            TextButton(
-              onPressed: () {
+            GestureDetector(
+              onTap: () {
                 Navigator.of(ctx).pop();
                 logoutToLogin(context, askConfirmation: false);
               },
-              child: const Text(
-                'Login Ulang',
-                style: TextStyle(
-                  fontFamily: _primaryFont,
-                  color: Color(0xFF4A1010),
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 12),
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(14),
+                  gradient: const LinearGradient(
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                    colors: [Color(0xFF5A1212), Color(0xFF2B0606)],
+                  ),
+                ),
+                child: const Text(
+                  'Login Ulang',
+                  style: TextStyle(
+                    fontFamily: _primaryFont,
+                    fontSize: 13.5,
+                    fontWeight: FontWeight.w700,
+                    color: Colors.white,
+                  ),
                 ),
               ),
             ),
@@ -631,31 +688,59 @@ class _AbsenPageState extends State<AbsenPage> {
       showDialog(
         context: context,
         builder: (ctx) => AlertDialog(
+          backgroundColor: Colors.white,
+          surfaceTintColor: Colors.transparent,
           shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(16),
+            borderRadius: BorderRadius.circular(24),
           ),
-          title: const Row(
-            children: [
-              Icon(Icons.error_outline_rounded, color: Colors.red),
-              SizedBox(width: 8),
-              Text(
-                'Di Luar Jangkauan',
-                style: TextStyle(fontFamily: _primaryFont, fontSize: 18),
-              ),
-            ],
+          icon: const Icon(
+            Icons.location_off_rounded,
+            color: Color(0xFFC62828),
+            size: 34,
+          ),
+          title: const Text(
+            'Di Luar Jangkauan',
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              fontFamily: _primaryFont,
+              fontSize: 17,
+              fontWeight: FontWeight.w800,
+              color: Color(0xFF1E1E1E),
+            ),
           ),
           content: Text(
-            'Anda berada di luar radius $_namaKantor!\nJarak Anda saat ini: $_distanceToOffice meter (Maksimal: $_radiusMaksimal meter).',
-            style: const TextStyle(fontFamily: _secondaryFont, fontSize: 14),
+            'Anda berada di luar radius $_namaKantor.\n'
+            'Jarak Anda saat ini: $_distanceToOffice meter (Maksimal: $_radiusMaksimal meter).',
+            textAlign: TextAlign.center,
+            style: const TextStyle(
+              fontFamily: _secondaryFont,
+              fontSize: 13.5,
+              height: 1.5,
+              color: Color(0xFF6E6E6E),
+            ),
           ),
+          actionsAlignment: MainAxisAlignment.center,
           actions: [
-            TextButton(
-              onPressed: () => Navigator.of(ctx).pop(),
-              child: const Text(
-                'Tutup',
-                style: TextStyle(
-                  fontFamily: _primaryFont,
-                  color: Color(0xFF4A1010),
+            GestureDetector(
+              onTap: () => Navigator.of(ctx).pop(),
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 12),
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(14),
+                  gradient: const LinearGradient(
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                    colors: [Color(0xFF5A1212), Color(0xFF2B0606)],
+                  ),
+                ),
+                child: const Text(
+                  'Mengerti',
+                  style: TextStyle(
+                    fontFamily: _primaryFont,
+                    fontSize: 13.5,
+                    fontWeight: FontWeight.w700,
+                    color: Colors.white,
+                  ),
                 ),
               ),
             ),
@@ -670,7 +755,7 @@ class _AbsenPageState extends State<AbsenPage> {
     showModalBottomSheet(
       context: context,
       shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+        borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
       ),
       backgroundColor: Colors.white,
       builder: (ctx) {
