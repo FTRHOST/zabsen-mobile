@@ -1,7 +1,10 @@
+import 'dart:convert';
+
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import 'auth_session.dart';
+import 'face_capture_dialog.dart';
 import 'session_actions.dart';
 
 /// Halaman Profil pengguna.
@@ -24,7 +27,6 @@ class ProfilePageState extends State<ProfilePage> {
   static const Color primaryColor = Color(0xFF500808);
   static const Color borderColor = Color(0xFFE8E8E8);
   static const Color hintColor = Color(0xFF939090);
-
   final _formKey = GlobalKey<FormState>();
   final TextEditingController _newPasswordController = TextEditingController();
   final TextEditingController _confirmPasswordController =
@@ -35,6 +37,7 @@ class ProfilePageState extends State<ProfilePage> {
   bool _obscureNewPassword = true;
   bool _obscureConfirmPassword = true;
   bool _isSavingPassword = false;
+  bool _isFaceScanDialogOpen = false;
 
   SupabaseClient get _supabase => Supabase.instance.client;
 
@@ -162,6 +165,77 @@ class ProfilePageState extends State<ProfilePage> {
     return text.isEmpty ? fallback : text;
   }
 
+  bool get _hasFaceData {
+    final faceDescriptor = _user?['face_descriptor']?.toString() ?? '';
+    final fotoWajah = _user?['foto_wajah']?.toString() ?? '';
+    return faceDescriptor.isNotEmpty || fotoWajah.isNotEmpty;
+  }
+
+  /// Membuka dialog face scan (kamera + face-api.js) untuk mendaftarkan atau
+  /// memperbarui data wajah pengguna.
+  Future<void> _startFaceScan() async {
+    if (_isFaceScanDialogOpen) return;
+    setState(() => _isFaceScanDialogOpen = true);
+
+    final result = await showFaceCaptureDialog(
+      context,
+      mode: FaceCaptureMode.register,
+      tipeAbsen: 'Pendaftaran Wajah',
+    );
+
+    if (mounted) {
+      setState(() => _isFaceScanDialogOpen = false);
+    }
+
+    if (result == null) return;
+
+    final userId = _user?['id'];
+    final int? userIdInt = userId is int
+        ? userId
+        : int.tryParse(userId?.toString() ?? '');
+    if (userIdInt == null) return;
+
+    try {
+      final supabase = Supabase.instance.client;
+      await supabase
+          .from('users')
+          .update({
+            'face_descriptor': result.descriptorJson,
+            'foto_wajah': result.photoDataUrl,
+          })
+          .eq('id', userIdInt);
+
+      final fresh = await supabase
+          .from('users')
+          .select('*')
+          .eq('id', userIdInt)
+          .maybeSingle();
+
+      if (mounted && fresh != null) {
+        setState(() => _user = Map<String, dynamic>.from(fresh));
+      }
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Wajah berhasil didaftarkan!'),
+            backgroundColor: Color(0xFF2E7D32),
+          ),
+        );
+      }
+    } catch (e) {
+      debugPrint('Gagal menyimpan data wajah: $e');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Gagal menyimpan data wajah: $e'),
+            backgroundColor: Colors.red.shade800,
+          ),
+        );
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     if (_isLoading) {
@@ -245,8 +319,95 @@ class ProfilePageState extends State<ProfilePage> {
           const SizedBox(height: 18),
           _buildPasswordCard(),
           const SizedBox(height: 20),
+          _buildFaceCard(),
+          const SizedBox(height: 20),
         ],
       ),
+    );
+  }
+
+  Widget _buildAvatar() {
+    final fotoWajah = _user?['foto_wajah']?.toString() ?? '';
+    final hasFoto = fotoWajah.isNotEmpty;
+    final bytes = hasFoto
+        ? base64Decode(
+            fotoWajah.contains(',') ? fotoWajah.split(',').last : fotoWajah,
+          )
+        : null;
+
+    return hasFoto && bytes != null
+        ? Image.memory(
+            bytes,
+            fit: BoxFit.cover,
+            errorBuilder: (context, error, stackTrace) =>
+                const Icon(Icons.person_rounded, color: primaryColor, size: 34),
+          )
+        : Image.asset(
+            'assets/images/profil.png',
+            fit: BoxFit.cover,
+            errorBuilder: (context, error, stackTrace) =>
+                const Icon(Icons.person_rounded, color: primaryColor, size: 34),
+          );
+  }
+
+  Widget _buildFaceCard() {
+    final hasFace = _hasFaceData;
+
+    return _buildCard(
+      children: [
+        const Text(
+          'Face Recognition',
+          style: TextStyle(
+            fontSize: 16,
+            fontWeight: FontWeight.bold,
+            color: Color(0xFF1E1E1E),
+          ),
+        ),
+        const SizedBox(height: 8),
+        Text(
+          hasFace
+              ? 'Wajah terdaftar. Anda dapat melakukan absen wajah.'
+              : 'Wajah belum terdaftar. Lakukan face scan sebelum absen.',
+          style: TextStyle(
+            fontSize: 13,
+            color: hintColor,
+            fontWeight: FontWeight.w500,
+          ),
+        ),
+        const SizedBox(height: 16),
+        SizedBox(
+          height: 46,
+          child: ElevatedButton(
+            onPressed: _isFaceScanDialogOpen ? null : _startFaceScan,
+            style: ElevatedButton.styleFrom(
+              backgroundColor: primaryColor,
+              foregroundColor: Colors.white,
+              elevation: 3,
+              shadowColor: primaryColor.withValues(alpha: 0.4),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(24),
+              ),
+            ),
+            child: _isFaceScanDialogOpen
+                ? const SizedBox(
+                    height: 20,
+                    width: 20,
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2.5,
+                      color: Colors.white,
+                    ),
+                  )
+                : const Text(
+                    'Buka Face Scan',
+                    style: TextStyle(
+                      fontSize: 13,
+                      fontWeight: FontWeight.bold,
+                      letterSpacing: 0.5,
+                    ),
+                  ),
+          ),
+        ),
+      ],
     );
   }
 
@@ -287,19 +448,7 @@ class ProfilePageState extends State<ProfilePage> {
                   ),
                 ],
               ),
-              child: ClipOval(
-                child: Image.asset(
-                  'assets/images/profil.png',
-                  fit: BoxFit.cover,
-                  errorBuilder: (context, error, stackTrace) {
-                    return const Icon(
-                      Icons.person_rounded,
-                      color: primaryColor,
-                      size: 34,
-                    );
-                  },
-                ),
-              ),
+              child: ClipOval(child: _buildAvatar()),
             ),
             const SizedBox(width: 16),
             Expanded(

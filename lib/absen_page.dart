@@ -10,6 +10,8 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import 'app_config.dart';
+import 'auth_session.dart';
+import 'face_capture_dialog.dart';
 import 'izin_page.dart';
 import 'kalender_page.dart';
 import 'profile_page.dart';
@@ -23,6 +25,8 @@ class AbsenPage extends StatefulWidget {
 }
 
 class _AbsenPageState extends State<AbsenPage> {
+  static const String _absensiBucket = 'absensi-bucket';
+
   int _currentNavIndex = 0;
   late Timer _timer;
   DateTime _currentTime = DateTime.now();
@@ -32,6 +36,11 @@ class _AbsenPageState extends State<AbsenPage> {
   String _userName = 'Pengguna';
   String _userCabang = 'Pusat';
   String _userRole = 'Karyawan';
+
+  /// Descriptor wajah (128 dimensi, JSON string) dari kolom
+  /// `users.face_descriptor`. Wajib ada sebelum absen wajah.
+  String? _faceDescriptor;
+  bool _isFaceDialogOpen = false;
 
   // Key untuk memuat ulang halaman profil saat tab Profil dibuka
   final GlobalKey<ProfilePageState> _profileKey = GlobalKey<ProfilePageState>();
@@ -119,6 +128,9 @@ class _AbsenPageState extends State<AbsenPage> {
       if (user['nama'] != null) _userName = user['nama'];
       if (user['cabang'] != null) _userCabang = user['cabang'];
       if (user['role'] != null) _userRole = user['role'];
+      if (user['face_descriptor'] != null) {
+        _faceDescriptor = user['face_descriptor'].toString();
+      }
     });
   }
 
@@ -291,7 +303,11 @@ class _AbsenPageState extends State<AbsenPage> {
             if (userData['nama'] != null) _userName = userData['nama'];
             if (userData['cabang'] != null) _userCabang = userData['cabang'];
             if (userData['role'] != null) _userRole = userData['role'];
+            if (userData['face_descriptor'] != null) {
+              _faceDescriptor = userData['face_descriptor'].toString();
+            }
           });
+          await _loadFaceProfile();
           _loadRiwayatHariIni();
         }
       }
@@ -372,6 +388,31 @@ class _AbsenPageState extends State<AbsenPage> {
       if (mounted) {
         setState(() => _isLoadingRiwayat = false);
       }
+    }
+  }
+
+  /// Memuat descriptor wajah terbaru dari tabel `users`.
+  ///
+  /// Data ini dipakai untuk membandingkan wajah saat absen (face recognition),
+  /// sama seperti `face_descriptor` pada web referensi.
+  Future<void> _loadFaceProfile() async {
+    if (_userId == null) return;
+
+    try {
+      final row = await Supabase.instance.client
+          .from('users')
+          .select('face_descriptor')
+          .eq('id', _userId!)
+          .maybeSingle();
+
+      if (row != null && mounted) {
+        final descriptor = row['face_descriptor']?.toString();
+        if (descriptor != null && descriptor.isNotEmpty) {
+          setState(() => _faceDescriptor = descriptor);
+        }
+      }
+    } catch (e) {
+      debugPrint('Gagal memuat face_descriptor: $e');
     }
   }
 
@@ -473,8 +514,15 @@ class _AbsenPageState extends State<AbsenPage> {
     return '${hari[date.weekday - 1]}, ${date.day} ${bulan[date.month - 1]} ${date.year}';
   }
 
-  /// Menyimpan rekaman absensi ke tabel absensi di Supabase
-  Future<void> _simpanAbsensi(String tipe) async {
+  /// Menyimpan rekaman absensi ke tabel absensi di Supabase.
+  ///
+  /// Bila [faceResult] tersedia, foto selfie diunggah ke bucket
+  /// `absensi-bucket` dan status hasil pencocokan wajah (`status_wajah`)
+  /// ikut disimpan, sama seperti alur absen wajah pada web referensi.
+  Future<void> _simpanAbsensi(
+    String tipe, {
+    FaceCaptureResult? faceResult,
+  }) async {
     if (_userId == null) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
@@ -526,13 +574,34 @@ class _AbsenPageState extends State<AbsenPage> {
     );
 
     try {
+      final supabase = Supabase.instance.client;
       final now = DateTime.now();
       final todayStr =
           '${now.year}-${now.month.toString().padLeft(2, '0')}-${now.day.toString().padLeft(2, '0')}';
       final timeStr =
           '${now.hour.toString().padLeft(2, '0')}:${now.minute.toString().padLeft(2, '0')}:${now.second.toString().padLeft(2, '0')}';
 
-      await Supabase.instance.client.from('absensi').insert([
+      // 1. Unggah foto selfie ke bucket `absensi-bucket` (wajib agar absen
+      //    wajah benar-benar tercatat beserta buktinya).
+      String? fotoUrl;
+      if (faceResult != null) {
+        final bytes = base64Decode(faceResult.photoBase64);
+        final fileName =
+            'selfie-${_userId}_${DateTime.now().millisecondsSinceEpoch}.jpg';
+
+        await supabase.storage
+            .from(_absensiBucket)
+            .uploadBinary(
+              fileName,
+              bytes,
+              fileOptions: const FileOptions(contentType: 'image/jpeg'),
+            );
+
+        fotoUrl = supabase.storage.from(_absensiBucket).getPublicUrl(fileName);
+      }
+
+      // 2. Simpan transaksi absensi beserta foto & status wajah.
+      await supabase.from('absensi').insert([
         {
           'user_id': _userId,
           'tanggal': todayStr,
@@ -541,14 +610,21 @@ class _AbsenPageState extends State<AbsenPage> {
           'lokasi': 'Jarak: $_distanceToOffice m dari $_namaKantor',
           'status': 'Hadir',
           'keterangan_waktu': 'Tepat Waktu',
+          'foto': ?fotoUrl,
+          if (faceResult != null) 'status_wajah': faceResult.statusWajah,
         },
       ]);
 
       if (mounted) {
         Navigator.of(context).pop(); // Tutup loading dialog
+        final statusWajah = faceResult?.statusWajah;
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Presensi $tipe berhasil dicatat!'),
+            content: Text(
+              statusWajah == null
+                  ? 'Presensi $tipe berhasil dicatat!'
+                  : 'Presensi $tipe berhasil. Status wajah: $statusWajah',
+            ),
             backgroundColor: const Color(0xFF2E7D32),
           ),
         );
@@ -564,6 +640,147 @@ class _AbsenPageState extends State<AbsenPage> {
           ),
         );
       }
+    }
+  }
+
+  /// Membuka popup absen wajah (kamera + face-api.js).
+  ///
+  /// Jika pengguna belum punya `face_descriptor`, tampilkan pendaftaran wajah
+  /// terlebih dahulu — sama seperti validasi pada `lanjutKeKameraAtauSubmit()`
+  /// di web referensi.
+  Future<void> _startFaceAbsen(String tipe) async {
+    if (_isFaceDialogOpen) return;
+    _isFaceDialogOpen = true;
+
+    try {
+      if (_faceDescriptor == null || _faceDescriptor!.isEmpty) {
+        final shouldRegister = await _showFaceRegistrationPrompt();
+        if (shouldRegister != true) return;
+
+        if (!mounted) return;
+        final registered = await _registerFace();
+        if (!registered) return;
+      }
+
+      if (!mounted) return;
+
+      final result = await showFaceCaptureDialog(
+        context,
+        mode: FaceCaptureMode.absen,
+        tipeAbsen: tipe,
+        registeredDescriptor: _faceDescriptor,
+      );
+
+      if (result == null || !mounted) return;
+      await _simpanAbsensi(tipe, faceResult: result);
+    } finally {
+      _isFaceDialogOpen = false;
+    }
+  }
+
+  Future<bool?> _showFaceRegistrationPrompt() {
+    return showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: const Row(
+          children: [
+            Icon(Icons.face_retouching_natural, color: Color(0xFF4A1010)),
+            SizedBox(width: 8),
+            Expanded(
+              child: Text(
+                'Wajah Wajib Terdaftar!',
+                style: TextStyle(fontSize: 18),
+              ),
+            ),
+          ],
+        ),
+        content: const Text(
+          'Anda belum mendaftarkan data wajah (Face Recognition). '
+          'Pendaftaran wajah wajib dilakukan terlebih dahulu sebelum '
+          'melakukan absensi.',
+          style: TextStyle(fontSize: 14),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(false),
+            child: const Text('Nanti'),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.of(ctx).pop(true),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFF500808),
+              foregroundColor: Colors.white,
+            ),
+            child: const Text('Daftar Wajah Sekarang'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// Mendaftarkan wajah pengguna ke kolom `users.face_descriptor` dan
+  /// `users.foto_wajah` (format data URL, sama dengan web referensi).
+  Future<bool> _registerFace() async {
+    if (_userId == null) return false;
+
+    final result = await showFaceCaptureDialog(
+      context,
+      mode: FaceCaptureMode.register,
+      tipeAbsen: 'Pendaftaran Wajah',
+    );
+
+    if (result == null || result.descriptorJson == null) return false;
+
+    try {
+      final supabase = Supabase.instance.client;
+      await supabase
+          .from('users')
+          .update({
+            'face_descriptor': result.descriptorJson,
+            'foto_wajah': result.photoDataUrl,
+          })
+          .eq('id', _userId!);
+
+      if (mounted) {
+        setState(() => _faceDescriptor = result.descriptorJson);
+      }
+
+      // Perbarui cache sesi agar descriptor langsung tersedia pada absen
+      // berikutnya tanpa harus menunggu query ulang.
+      try {
+        final fresh = await supabase
+            .from('users')
+            .select('*')
+            .eq('id', _userId!)
+            .maybeSingle();
+        if (fresh != null) {
+          await AuthSession.saveUser(Map<String, dynamic>.from(fresh));
+        }
+      } catch (e) {
+        debugPrint('Gagal memperbarui cache user setelah daftar wajah: $e');
+      }
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Wajah berhasil didaftarkan!'),
+            backgroundColor: Color(0xFF2E7D32),
+          ),
+        );
+      }
+      return true;
+    } catch (e) {
+      debugPrint('Gagal menyimpan data wajah: $e');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Gagal menyimpan data wajah: $e'),
+            backgroundColor: Colors.red.shade800,
+          ),
+        );
+      }
+      return false;
     }
   }
 
@@ -619,6 +836,81 @@ class _AbsenPageState extends State<AbsenPage> {
     }
   }
 
+  /// Memeriksa apakah absen hari ini sudah masuk (Masuk/Izin Masuk/Istirahat
+  /// Masuk) — sama logika `sudahMasuk` pada web referensi.
+  bool get _sudahMasukAbsenHariIni {
+    return _riwayatHariIni.any((a) {
+      final tipe = a['tipe_absen']?.toString().toLowerCase() ?? '';
+      return (tipe.contains('masuk') || tipe == 'masuk') &&
+          !tipe.contains('izin masuk') &&
+          !tipe.contains('istirahat masuk');
+    });
+  }
+
+  /// Memeriksa apakah absen hari ini sudah pulang (Pulang/Checkout).
+  bool get _sudahPulangAbsenHariIni {
+    return _riwayatHariIni.any((a) {
+      final tipe = a['tipe_absen']?.toString().toLowerCase() ?? '';
+      return tipe.contains('pulang') || tipe.contains('checkout');
+    });
+  }
+
+  /// Sedang dalam masa istirahat? (Keluar > Masuk).
+  bool get _sedangIstirahat {
+    final tipeHariIni = _riwayatHariIni
+        .map((a) => a['tipe_absen']?.toString().toLowerCase() ?? '')
+        .toList();
+    final countIstirahatKeluar = tipeHariIni
+        .where((t) => t.contains('istirahat keluar'))
+        .length;
+    final countIstirahatMasuk = tipeHariIni
+        .where((t) => t.contains('istirahat masuk'))
+        .length;
+    return countIstirahatKeluar > countIstirahatMasuk;
+  }
+
+  /// Sedang dalam masa izin keluar? (Keluar > Masuk).
+  bool get _sedangIzin {
+    final tipeHariIni = _riwayatHariIni
+        .map((a) => a['tipe_absen']?.toString().toLowerCase() ?? '')
+        .toList();
+    final countIzinKeluar = tipeHariIni
+        .where((t) => t.contains('izin keluar'))
+        .length;
+    final countIzinMasuk = tipeHariIni
+        .where((t) => t.contains('izin masuk'))
+        .length;
+    return countIzinKeluar > countIzinMasuk;
+  }
+
+  /// Menentukan shift pulang mana yang sesuai dengan shift masuk hari ini.
+  String _getTipePulangAktif() {
+    final tipeHariIni = _riwayatHariIni
+        .map((a) => a['tipe_absen']?.toString().toLowerCase() ?? '')
+        .toList();
+
+    final hasMasukPagi = tipeHariIni.any(
+      (t) => t.contains('masuk pagi') || t.contains('pagi'),
+    );
+    final hasMasukSiang = tipeHariIni.any(
+      (t) => t.contains('masuk siang') || t.contains('siang'),
+    );
+    final hasMasukMalam = tipeHariIni.any(
+      (t) => t.contains('masuk malam') || t.contains('malam'),
+    );
+
+    if (hasMasukPagi && !hasMasukSiang && !hasMasukMalam) {
+      return 'Absen Pulang Pagi';
+    }
+    if (hasMasukSiang && !hasMasukPagi && !hasMasukMalam) {
+      return 'Absen Pulang Siang';
+    }
+    if (hasMasukMalam && !hasMasukPagi && !hasMasukSiang) {
+      return 'Absen Pulang Malam';
+    }
+    return 'Absen Pulang / Checkout';
+  }
+
   /// Bottom Sheet pemilihan jenis absensi
   void _showPilihTipeAbsenSheet() {
     showModalBottomSheet(
@@ -660,52 +952,79 @@ class _AbsenPageState extends State<AbsenPage> {
                 ),
                 const SizedBox(height: 16),
 
-                _buildTipeAbsenTile(
-                  icon: Icons.login_rounded,
-                  color: Colors.green,
-                  title: 'Absen Masuk',
-                  subtitle: 'Catat jam kehadiran masuk kerja',
-                  onTap: () {
-                    Navigator.of(ctx).pop();
-                    _simpanAbsensi('Masuk');
-                  },
-                ),
-                const SizedBox(height: 10),
-
-                _buildTipeAbsenTile(
-                  icon: Icons.coffee_rounded,
-                  color: Colors.amber.shade700,
-                  title: 'Istirahat',
-                  subtitle: 'Mulai atau kembali dari istirahat',
-                  onTap: () {
-                    Navigator.of(ctx).pop();
-                    _simpanAbsensi('Istirahat');
-                  },
-                ),
-                const SizedBox(height: 10),
-
-                _buildTipeAbsenTile(
-                  icon: Icons.directions_walk_rounded,
-                  color: Colors.blue.shade700,
-                  title: 'Izin Keluar',
-                  subtitle: 'Keperluan dinas atau izin sementara',
-                  onTap: () {
-                    Navigator.of(ctx).pop();
-                    _simpanAbsensi('Izin');
-                  },
-                ),
-                const SizedBox(height: 10),
-
-                _buildTipeAbsenTile(
-                  icon: Icons.logout_rounded,
-                  color: Colors.red.shade700,
-                  title: 'Absen Pulang / Checkout',
-                  subtitle: 'Selesaikan jam kerja hari ini',
-                  onTap: () {
-                    Navigator.of(ctx).pop();
-                    _simpanAbsensi('Pulang');
-                  },
-                ),
+                if (_sudahPulangAbsenHariIni) ...[
+                  const SizedBox(height: 8),
+                  _buildTipeAbsenTile(
+                    icon: Icons.check_circle_rounded,
+                    color: Colors.green,
+                    title: 'Absensi Selesai',
+                    subtitle: 'Absen masuk dan pulang hari ini sudah tercatat.',
+                    onTap: () {},
+                  ),
+                ] else if (!_sudahMasukAbsenHariIni) ...[
+                  // Logika sesuai web: sebelum absen masuk, hanya absen masuk
+                  // yang boleh dilakukan.
+                  _buildTipeAbsenTile(
+                    icon: Icons.login_rounded,
+                    color: Colors.green,
+                    title: 'Absen Masuk',
+                    subtitle: 'Wajib absen masuk sebelum absen lainnya',
+                    onTap: () {
+                      Navigator.of(ctx).pop();
+                      _startFaceAbsen('Absen Masuk');
+                    },
+                  ),
+                ] else ...[
+                  _buildTipeAbsenTile(
+                    icon: Icons.login_rounded,
+                    color: Colors.green,
+                    title: 'Absen Masuk',
+                    subtitle: 'Selesai',
+                    enabled: false,
+                    onTap: () {},
+                  ),
+                  if (!_sedangIstirahat)
+                    _buildTipeAbsenTile(
+                      icon: Icons.coffee_rounded,
+                      color: Colors.amber.shade700,
+                      title: _sedangIstirahat
+                          ? 'Istirahat Masuk (Kembali)'
+                          : 'Istirahat',
+                      subtitle: 'Mulai atau kembali dari istirahat',
+                      onTap: () {
+                        Navigator.of(ctx).pop();
+                        _startFaceAbsen(
+                          _sedangIstirahat ? 'Istirahat Masuk' : 'Istirahat',
+                        );
+                      },
+                    ),
+                  if (!_sedangIstirahat && !_sedangIzin)
+                    _buildTipeAbsenTile(
+                      icon: Icons.directions_walk_rounded,
+                      color: Colors.blue.shade700,
+                      title: _sedangIzin
+                          ? 'Izin Masuk (Kembali)'
+                          : 'Izin Keluar',
+                      subtitle: 'Keperluan dinas atau izin sementara',
+                      onTap: () {
+                        Navigator.of(ctx).pop();
+                        _startFaceAbsen(
+                          _sedangIzin ? 'Izin Masuk' : 'Izin Keluar',
+                        );
+                      },
+                    ),
+                  if (!_sedangIstirahat && !_sedangIzin)
+                    _buildTipeAbsenTile(
+                      icon: Icons.logout_rounded,
+                      color: Colors.red.shade700,
+                      title: 'Absen Pulang / Checkout',
+                      subtitle: 'Selesaikan jam kerja hari ini',
+                      onTap: () {
+                        Navigator.of(ctx).pop();
+                        _startFaceAbsen(_getTipePulangAktif());
+                      },
+                    ),
+                ],
               ],
             ),
           ),
@@ -720,16 +1039,21 @@ class _AbsenPageState extends State<AbsenPage> {
     required String title,
     required String subtitle,
     required VoidCallback onTap,
+    bool enabled = true,
   }) {
     return InkWell(
-      onTap: onTap,
+      onTap: enabled ? onTap : null,
       borderRadius: BorderRadius.circular(16),
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
         decoration: BoxDecoration(
-          color: color.withValues(alpha: 0.08),
+          color: enabled ? color.withValues(alpha: 0.08) : Colors.grey.shade200,
           borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: color.withValues(alpha: 0.3)),
+          border: Border.all(
+            color: enabled
+                ? color.withValues(alpha: 0.3)
+                : Colors.grey.shade400,
+          ),
         ),
         child: Row(
           children: [
