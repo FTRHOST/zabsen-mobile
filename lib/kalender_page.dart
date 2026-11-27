@@ -330,14 +330,7 @@ class KalenderPageState extends State<KalenderPage> {
     final scheme = Theme.of(context).colorScheme;
     final double topSafePadding = MediaQuery.of(context).padding.top;
 
-    // Jika dibuka di bawah _buildStandardHeader milik AbsenPage, geser ke atas
-    // agar Hero Gradient Header langsung menutupi header putih bawaan.
-    final bool hasParentStandardHeader =
-        context.findAncestorWidgetOfExactType<SafeArea>() != null;
-    final double effectiveTopPadding =
-        hasParentStandardHeader ? 14.0 : topSafePadding + 14.0;
-    final double headerHeight =
-        hasParentStandardHeader ? 212.0 : 212.0 + topSafePadding;
+    
 
     return ColoredBox(
       color: _kCanvasBg,
@@ -352,7 +345,7 @@ class KalenderPageState extends State<KalenderPage> {
               // LAYER BACKGROUND GRADASI HEADER (IDENTIK DENGAN ABSEN PAGE)
               // ==========================================================
               Container(
-                height: headerHeight,
+                height: 212 + topSafePadding,
                 width: double.infinity,
                 decoration: const BoxDecoration(
                   gradient: LinearGradient(
@@ -398,7 +391,7 @@ class KalenderPageState extends State<KalenderPage> {
               Padding(
                 padding: EdgeInsets.fromLTRB(
                   22.0,
-                  effectiveTopPadding,
+                  topSafePadding + 14.0,
                   22.0,
                   28.0,
                 ),

@@ -895,12 +895,14 @@ class _AbsenPageState extends State<AbsenPage> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   // 1. TOP BAR: Tulisan ZIEDA ABSEN murni tanpa box/lingkaran
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    crossAxisAlignment: CrossAxisAlignment.center,
-                    children: [
-                      const Text(
-                        'ZIEDA ABSEN',
+                  SizedBox(
+                    height: 30,
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      crossAxisAlignment: CrossAxisAlignment.center,
+                      children: [
+                        const Text(
+                          'ZIEDA ABSEN',
                         style: TextStyle(
                           fontFamily: _primaryFont,
                           fontSize: 15,
@@ -930,6 +932,7 @@ class _AbsenPageState extends State<AbsenPage> {
                         ],
                       ),
                     ],
+                  ),
                   ),
 
                   const SizedBox(height: 18),
@@ -1687,27 +1690,34 @@ class _AbsenPageState extends State<AbsenPage> {
     final String tanggalFormatted = _formatTanggal(_currentTime);
 
     return Scaffold(
-      backgroundColor: _currentNavIndex == 0
-          ? const Color(0xFFF7F5F4)
-          : Colors.white,
+      backgroundColor: const Color(0xFFF7F5F4),
       body: Column(
         children: [
           // Header standar hanya ditampilkan untuk tab selain Absen (Izin, Kalender, Profil)
-          if (_currentNavIndex != 0)
-            SafeArea(
-              bottom: false,
-              child: _buildStandardHeader(),
-            ),
+          
           Expanded(
             child: IndexedStack(
               index: _currentNavIndex,
               children: [
                 _buildAbsenTab(jamMenit, detik, tanggalFormatted),
-                IzinPage(key: _izinKey),
-                KalenderPage(key: _kalenderKey),
+                IzinPage(
+                  key: _izinKey,
+                  isAdmin: _isAdmin,
+                  onOpenAdmin: _openAdminPanel,
+                  onLogout: () => logoutToLogin(context),
+                ),
+                KalenderPage(
+                  key: _kalenderKey,
+                  isAdmin: _isAdmin,
+                  onOpenAdmin: _openAdminPanel,
+                  onLogout: () => logoutToLogin(context),
+                ),
                 ProfilePage(
                   key: _profileKey,
                   onUserUpdated: _applyUserUpdate,
+                  isAdmin: _isAdmin,
+                  onOpenAdmin: _openAdminPanel,
+                  onLogout: () => logoutToLogin(context),
                 ),
               ],
             ),
