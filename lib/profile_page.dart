@@ -21,7 +21,7 @@ const Color _kTextMuted = Color(0xFF6E6E6E);
 /// Halaman Profil pengguna dengan Hero Gradient Header & Overlapping Card
 /// yang ukuran dan tata letaknya identik dengan AbsenPage, KalenderPage, dan IzinPage.
 class ProfilePage extends StatefulWidget {
-  final ValueChanged<_DataMap>? onUserUpdated;
+  final ValueChanged<Map<String, dynamic>>? onUserUpdated;
   final bool isAdmin;
   final VoidCallback? onOpenAdmin;
   final VoidCallback? onLogout;

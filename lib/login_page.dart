@@ -26,7 +26,6 @@ class _LoginPageState extends State<LoginPage> {
   bool _isLoadingSettings = true;
 
   // Data dinamis dari app_settings
-  String _appName = 'ZIEDA ABSEN';
   String _subText = 'Silakan masuk ke akun Anda';
   String? _logoUrl;
 
@@ -85,7 +84,6 @@ class _LoginPageState extends State<LoginPage> {
   void _applySettings(Map<String, dynamic> data) {
     if (data['nama_aplikasi'] != null &&
         (data['nama_aplikasi'] as String).isNotEmpty) {
-      _appName = data['nama_aplikasi'];
     }
     if (data['login_subteks'] != null &&
         (data['login_subteks'] as String).isNotEmpty) {

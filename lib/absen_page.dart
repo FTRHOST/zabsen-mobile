@@ -220,33 +220,6 @@ class _AbsenPageState extends State<AbsenPage> {
     }
   }
 
-  /// Tombol pil pada header untuk tab non-Absen (putih bersih).
-  Widget _buildHeaderAction({
-    required String label,
-    required VoidCallback onTap,
-  }) {
-    return Material(
-      color: const Color(0xFF4A1010),
-      borderRadius: BorderRadius.circular(40),
-      child: InkWell(
-        borderRadius: BorderRadius.circular(40),
-        onTap: onTap,
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-          child: Text(
-            label,
-            style: const TextStyle(
-              fontFamily: _primaryFont,
-              color: Colors.white,
-              fontSize: 12,
-              fontWeight: FontWeight.w700,
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-
   /// Tombol aksi ringan pada Hero Header tab Absen.
   Widget _buildHeroGlassAction({
     required String label,
@@ -278,64 +251,6 @@ class _AbsenPageState extends State<AbsenPage> {
             ],
           ),
         ),
-      ),
-    );
-  }
-
-  /// Header standar untuk tab Izin, Kalender, dan Profil.
-  Widget _buildStandardHeader() {
-    return Container(
-      color: Colors.white,
-      padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 16.0),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.center,
-        children: [
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Text(
-                  'ZIEDA ABSEN',
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: TextStyle(
-                    fontFamily: _primaryFont,
-                    fontSize: 20,
-                    fontWeight: FontWeight.w800,
-                    color: Color(0xFF4A1010),
-                    letterSpacing: 0.6,
-                  ),
-                ),
-                const SizedBox(height: 3),
-                Text(
-                  'Selamat Datang, $_userName',
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(
-                    fontFamily: _secondaryFont,
-                    fontSize: 13.5,
-                    fontWeight: FontWeight.w500,
-                    color: Color(0xFF4A4A4A),
-                  ),
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(width: 12),
-          Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              if (_isAdmin) ...[
-                _buildHeaderAction(label: 'Admin', onTap: _openAdminPanel),
-                const SizedBox(width: 8),
-              ],
-              _buildHeaderAction(
-                label: 'Logout',
-                onTap: () => logoutToLogin(context),
-              ),
-            ],
-          ),
-        ],
       ),
     );
   }
@@ -1628,7 +1543,7 @@ class _AbsenPageState extends State<AbsenPage> {
                                 shrinkWrap: true,
                                 physics: const NeverScrollableScrollPhysics(),
                                 itemCount: _riwayatHariIni.length,
-                                separatorBuilder: (_, __) =>
+                                separatorBuilder: (_, _) =>
                                     const SizedBox(height: 14),
                                 itemBuilder: (context, index) {
                                   final item = _riwayatHariIni[index];

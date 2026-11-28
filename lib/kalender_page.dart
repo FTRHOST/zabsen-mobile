@@ -1,4 +1,3 @@
-import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
@@ -1166,7 +1165,7 @@ class KalenderPageState extends State<KalenderPage> {
                       shrinkWrap: true,
                       padding: EdgeInsets.zero,
                       itemCount: rows.length,
-                      separatorBuilder: (_, __) => const SizedBox(height: 10),
+                      separatorBuilder: (_, _) => const SizedBox(height: 10),
                       itemBuilder: (_, index) =>
                           _buildAbsensiTile(scheme, rows[index]),
                     ),
